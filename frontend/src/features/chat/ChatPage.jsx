@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
-import { TopBar } from '../../components/layout/TopBar';
-import { PageWrapper } from '../../components/layout/PageWrapper';
+import React from 'react';
 import { MessageList } from './components/MessageList';
-import { AgentThinkingAccordion } from './components/AgentThinkingAccordion';
+import { AgentThinkingAccordion, ChatHeader } from './components/ChatHeader';
 import { QuickReplySuggestions } from './components/QuickReplySuggestions';
 import { ChatInput } from './components/ChatInput';
 import { useChatStore } from '../../stores/useChatStore.jsx';
@@ -18,49 +16,58 @@ const ChatPage = () => {
     setListening,
   } = useChatStore();
 
-  const handleSendMessage = (text) => {
-    sendMessage(text);
-  };
+  const handleSendMessage = (text) => sendMessage(text);
 
-  const handleSuggestionClick = (suggestion) => {
-    sendMessage(suggestion);
-  };
+  const handleSuggestionClick = (suggestion) => sendMessage(suggestion);
 
   const handleToggleListening = () => {
-    // In a real app, this would integrate with Web Speech API
     setListening(!isListening);
-    
-    // Simulate voice input after 2 seconds
     if (!isListening) {
       setTimeout(() => {
-        const simulatedVoiceInput = 'What fertilizer should I use for my wheat crop?';
-        sendMessage(simulatedVoiceInput);
+        sendMessage('What fertilizer should I use for my wheat crop?');
         setListening(false);
       }, 2000);
     }
   };
 
   return (
-    <PageWrapper className="flex flex-col">
-      <TopBar
-        title="FasalSaathi Chat"
-        subtitle="Your AI farming assistant"
-        showBack={false}
-      />
+    /*
+     * Full-height column layout:
+     *  ┌─ ChatHeader (fixed 60px) ────────────────────────┐
+     *  │  MessageList (flex-1, scrollable)                 │
+     *  │  AgentThinkingAccordion (shows when thinking)     │
+     *  │  QuickReplySuggestions (horizontal chips)         │
+     *  └─ ChatInput (sticky bottom) ──────────────────────┘
+     */
+    <div
+      className="flex flex-col"
+      style={{
+        /* subtract bottom-nav height (64px) so input is never hidden */
+        height: 'calc(100dvh - 64px)',
+        maxHeight: 'calc(100dvh - 64px)',
+        background: '#f0fdf4',
+      }}
+    >
+      {/* Green WhatsApp-style header */}
+      <ChatHeader isThinking={isThinking} />
 
-      <div className="flex-1 flex flex-col pt-14">
+      {/* Scrollable message window — padded under fixed header */}
+      <div
+        className="flex flex-col flex-1 overflow-hidden"
+        style={{ paddingTop: '60px' }}
+      >
         <MessageList messages={messages} isThinking={isThinking} />
-        
-        <AgentThinkingAccordion 
-          agentSteps={agentSteps} 
-          isThinking={isThinking} 
-        />
-        
+
+        {/* Thinking accordion floats above the input */}
+        <AgentThinkingAccordion agentSteps={agentSteps} isThinking={isThinking} />
+
+        {/* Quick reply chips */}
         <QuickReplySuggestions
           suggestions={suggestions}
           onSuggestionClick={handleSuggestionClick}
         />
-        
+
+        {/* Input bar */}
         <ChatInput
           onSendMessage={handleSendMessage}
           disabled={isThinking}
@@ -68,7 +75,7 @@ const ChatPage = () => {
           onToggleListening={handleToggleListening}
         />
       </div>
-    </PageWrapper>
+    </div>
   );
 };
 

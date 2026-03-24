@@ -1,62 +1,104 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+import { CheckCheck } from 'lucide-react';
 import { ActionCard } from './ActionCard';
 
-const MessageBubble = ({ message }) => {
-  const isUser = message.role === 'user';
-  const isAgent = message.role === 'agent';
+const formatTime = (date) => {
+  if (!date) return '';
+  const d = date instanceof Date ? date : new Date(date);
+  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+};
 
-  const formatTimestamp = (date) => {
-    const now = new Date();
-    const diff = now - date;
-    const minutes = Math.floor(diff / 60000);
-    
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes} min ago`;
-    
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    
-    const days = Math.floor(hours / 24);
-    return `${days} day${days > 1 ? 's' : ''} ago`;
-  };
+const TypingBubble = () => (
+  <div className="flex items-end gap-2 mb-3">
+    {/* Avatar */}
+    <div
+      className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm"
+      style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+    >
+      FS
+    </div>
 
-  if (isUser) {
-    return (
-      <div className="flex justify-end">
-        <div className="max-w-[80%] bg-brand-700 text-white rounded-2xl rounded-bl-2xl px-4 py-3 shadow-sm">
-          <p className="text-sm leading-relaxed">{message.text}</p>
-          <div className="text-xs text-brand-200 mt-1 text-right">
-            {formatTimestamp(message.timestamp)}
-          </div>
-        </div>
+    {/* Dots bubble */}
+    <div
+      className="px-4 py-3 rounded-2xl rounded-bl-sm shadow-sm"
+      style={{ background: '#ffffff', border: '1px solid #e7e5e4' }}
+    >
+      <div className="flex items-center gap-1.5">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="w-2 h-2 rounded-full bg-stone-400"
+            style={{
+              animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
+            }}
+          />
+        ))}
       </div>
-    );
-  }
+    </div>
+  </div>
+);
 
-  if (isAgent) {
-    return (
-      <div className="flex gap-3">
-        <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center flex-shrink-0">
-          <span className="text-white text-sm font-bold">FS</span>
-        </div>
-        
-        <div className="flex-1 max-w-[80%] space-y-3">
-          <div className="bg-stone-100 text-stone-900 rounded-2xl rounded-br-2xl px-4 py-3 shadow-sm">
-            <p className="text-sm leading-relaxed">{message.text}</p>
-            <div className="text-xs text-stone-500 mt-1">
-              {formatTimestamp(message.timestamp)}
-            </div>
-          </div>
-          
-          {message.actionCard && (
-            <ActionCard actionCard={message.actionCard} />
-          )}
-        </div>
+const UserBubble = ({ message }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    transition={{ duration: 0.2 }}
+    className="flex justify-end items-end gap-1 mb-2"
+  >
+    <div className="max-w-[78%] flex flex-col items-end gap-0.5">
+      <div
+        className="px-4 py-2.5 rounded-2xl rounded-br-sm shadow-sm text-white"
+        style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+      >
+        <p className="text-sm leading-relaxed">{message.text}</p>
       </div>
-    );
-  }
+      <div className="flex items-center gap-1 pr-1">
+        <span className="text-[10px] text-stone-400">{formatTime(message.timestamp)}</span>
+        <CheckCheck className="w-3.5 h-3.5 text-green-500" />
+      </div>
+    </div>
+  </motion.div>
+);
 
+const AgentBubble = ({ message }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    transition={{ duration: 0.2 }}
+    className="flex items-end gap-2 mb-2"
+  >
+    {/* Avatar */}
+    <div
+      className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm"
+      style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+    >
+      FS
+    </div>
+
+    <div className="max-w-[78%] flex flex-col gap-2">
+      <div
+        className="px-4 py-2.5 rounded-2xl rounded-bl-sm shadow-sm"
+        style={{ background: '#ffffff', border: '1px solid #e7e5e4' }}
+      >
+        <p className="text-sm leading-relaxed text-stone-800">{message.text}</p>
+        <span className="text-[10px] text-stone-400 mt-1 block text-right">
+          {formatTime(message.timestamp)}
+        </span>
+      </div>
+
+      {message.actionCard && (
+        <ActionCard actionCard={message.actionCard} />
+      )}
+    </div>
+  </motion.div>
+);
+
+const MessageBubble = ({ message, showTyping }) => {
+  if (showTyping) return <TypingBubble />;
+  if (message.role === 'user') return <UserBubble message={message} />;
+  if (message.role === 'agent') return <AgentBubble message={message} />;
   return null;
 };
 
-export { MessageBubble };
+export { MessageBubble, TypingBubble };

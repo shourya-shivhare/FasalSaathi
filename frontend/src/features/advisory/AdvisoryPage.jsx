@@ -1,4 +1,5 @@
 import React from 'react';
+import { BookOpen } from 'lucide-react';
 import { TopBar } from '../../components/layout/TopBar';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { CropCalendar } from './components/CropCalendar';
@@ -22,11 +23,12 @@ const AdvisoryPage = () => {
   return (
     <PageWrapper>
       <TopBar
+        icon={BookOpen}
         title="Advisory"
         subtitle={activeField ? `${activeField.crop} guidance` : 'Farming guidance & schemes'}
       />
 
-      <div className="pt-14 p-4 space-y-4">
+      <div className="p-4 space-y-4">
         {/* Crop Calendar */}
         {activeField && (
           <CropCalendar
@@ -38,7 +40,7 @@ const AdvisoryPage = () => {
 
         {/* Pest Alerts */}
         <div>
-          <h2 className="text-lg font-semibold text-stone-900 mb-3">Pest Alerts</h2>
+          <h2 className="text-lg font-semibold text-green-800 mb-3">🐛 Pest Alerts</h2>
           <div className="space-y-4">
             {relevantPestAlerts.map((alert) => (
               <PestAlertCard key={alert.id} pestAlert={alert} />
@@ -48,7 +50,7 @@ const AdvisoryPage = () => {
 
         {/* Government Schemes */}
         <div>
-          <h2 className="text-lg font-semibold text-stone-900 mb-3">Government Schemes</h2>
+          <h2 className="text-lg font-semibold text-green-800 mb-3">📜 Government Schemes</h2>
           <div className="space-y-4">
             {featuredSchemes.map((scheme) => (
               <SchemeCard key={scheme.id} scheme={scheme} />
@@ -57,9 +59,11 @@ const AdvisoryPage = () => {
         </div>
 
         {/* Weather Advisory */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-medium text-blue-900 mb-2">Weather Advisory</h3>
-          <div className="text-sm text-blue-800 space-y-1">
+        <div className="info-banner">
+          <h3 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+            🌦️ Weather Advisory
+          </h3>
+          <div className="text-sm text-green-700 space-y-1">
             <p>• High temperature expected in the next 48 hours</p>
             <p>• Consider afternoon irrigation to protect crops</p>
             <p>• Monitor for heat stress in young plants</p>

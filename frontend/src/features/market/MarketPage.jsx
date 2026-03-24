@@ -1,4 +1,5 @@
 import React from 'react';
+import { TrendingUp } from 'lucide-react';
 import { TopBar } from '../../components/layout/TopBar';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { MandiPriceCard } from './components/MandiPriceCard';
@@ -56,11 +57,12 @@ const MarketPage = () => {
   return (
     <PageWrapper>
       <TopBar
+        icon={TrendingUp}
         title="Market Prices"
         subtitle={activeField ? `${currentCrop} prices` : 'Latest market rates'}
       />
 
-      <div className="pt-14 p-4 space-y-4">
+      <div className="p-4 space-y-4">
         {/* Current Mandi Price Card */}
         <MandiPriceCard
           crop={currentCrop}
@@ -82,11 +84,13 @@ const MarketPage = () => {
         <MSPPriceTable mspData={mockMSPPrices} />
 
         {/* Market Insights */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-medium text-blue-900 mb-2">Market Insights</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
+        <div className="info-banner">
+          <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+            📊 Market Insights
+          </h4>
+          <ul className="text-sm text-green-700 space-y-1">
             <li>• {currentCrop} prices are {currentPrice > mspPrice ? 'above' : 'below'} MSP by ₹{Math.abs(currentPrice - mspPrice)}/quintal</li>
-            <li>• Prices have shown {priceHistory[priceHistory.length - 1].price > priceHistory[0].price ? 'an upward' : 'a downward'} trend over the past month</li>
+            <li>• Prices have shown {priceHistory[priceHistory.length - 1].price > priceHistory[0].price ? 'an upward 📈' : 'a downward 📉'} trend over the past month</li>
             <li>• Trading volume has been {priceHistory[priceHistory.length - 1].volume > priceHistory[0].volume ? 'increasing' : 'decreasing'} recently</li>
             <li>• Best time to sell: Consider market conditions and storage costs</li>
           </ul>

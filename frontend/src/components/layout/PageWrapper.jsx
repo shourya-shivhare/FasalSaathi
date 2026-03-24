@@ -1,11 +1,22 @@
 import React from 'react';
 
-const PageWrapper = ({ children, className = '' }) => {
-  return (
-    <div className={`min-h-screen bg-stone-50 pb-20 ${className}`}>
-      {children}
-    </div>
-  );
-};
+/**
+ * Standard page shell used by all non-chat pages.
+ * Accounts for:
+ *   - fixed top bar  : 60px
+ *   - fixed bottom nav: 64px
+ */
+const PageWrapper = ({ children, className = '' }) => (
+  <div
+    className={`min-h-dvh overflow-y-auto ${className}`}
+    style={{
+      background: '#f0fdf4',
+      paddingTop: '60px',
+      paddingBottom: '64px',
+    }}
+  >
+    {children}
+  </div>
+);
 
 export { PageWrapper };
