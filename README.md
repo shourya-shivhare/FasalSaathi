@@ -158,21 +158,6 @@ FAISS_INDEX_PATH=./faiss_index
 WEATHER_API_KEY=your-weather-api-key
 ```
 
----
-
-## API Overview
-
-| Method | Endpoint | Service | Description |
-|--------|----------|---------|-------------|
-| POST | `/api/v1/auth/register` | Backend | Register a new user |
-| POST | `/api/v1/auth/login` | Backend | Login, returns JWT |
-| GET | `/api/v1/crops/` | Backend | List all crops |
-| GET | `/api/v1/weather/current` | Backend | Current weather |
-| POST | `/api/v1/chat/` | Backend → AI | Chat with the AI assistant |
-| POST | `/api/chat/` | AI Service | General farming chatbot (LangChain) |
-| POST | `/api/crop-advisor/` | AI Service | Crop advisor agent (LangGraph) |
-
----
 
 ## AI Features
 
