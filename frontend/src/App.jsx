@@ -1,9 +1,13 @@
-import Home from './pages/Home'
+import { App } from './app/App'
+import { PWAInstallPrompt } from './components/PWAInstallPrompt'
 
-function App() {
+function AppWrapper() {
   return (
-    <Home />
+    <>
+      <App />
+      <PWAInstallPrompt />
+    </>
   )
 }
 
-export default App
+export { AppWrapper as App }

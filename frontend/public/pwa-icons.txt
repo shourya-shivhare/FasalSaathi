@@ -1,0 +1,7 @@
+# PWA Icons Placeholder
+# TODO: Add actual PWA icons (192x192.png and 512x512.png)
+# These should be placed in the public directory as:
+# - pwa-192x192.png
+# - pwa-512x512.png
+
+For now, the app will use the default favicon.svg as PWA icon.
