@@ -1,4 +1,5 @@
 import React from 'react';
+import { LayoutDashboard } from 'lucide-react';
 import { TopBar } from '../../components/layout/TopBar';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { SyncStatus } from '../../components/shared/SyncStatus';
@@ -44,19 +45,20 @@ const DashboardPage = () => {
   return (
     <PageWrapper>
       <TopBar
+        icon={LayoutDashboard}
         title={hasFields ? activeField?.name || 'My Farm' : 'My Farm'}
         subtitle={farmer.village}
         rightAction={<SyncStatus isOnline={true} lastSync={new Date()} />}
       />
 
-      <div className="pt-14 p-4 space-y-4 max-w-7xl mx-auto">
+      <div className="p-4 space-y-4 max-w-7xl mx-auto">
         {/* Weather Card */}
         <WeatherCard weather={weather} />
 
         {/* Soil Health Grid */}
         <div>
-          <h2 className="text-lg font-semibold text-stone-900 mb-3">
-            Soil Health
+          <h2 className="text-lg font-semibold text-green-800 mb-3">
+            🌱 Soil Health
           </h2>
           <SoilHealthGrid soil={soil} />
         </div>

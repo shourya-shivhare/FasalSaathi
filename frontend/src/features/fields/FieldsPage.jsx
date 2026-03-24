@@ -6,7 +6,7 @@ import { AddFieldForm } from './components/AddFieldForm';
 import { FieldMap } from './components/FieldMap';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
-import { Plus } from 'lucide-react';
+import { Plus, Map } from 'lucide-react';
 import { useFieldStore } from '../../stores/useFieldStore.jsx';
 
 const FieldsPage = () => {
@@ -35,6 +35,7 @@ const FieldsPage = () => {
   return (
     <PageWrapper>
       <TopBar
+        icon={Map}
         title="My Fields"
         subtitle={`${fields.length} field${fields.length !== 1 ? 's' : ''}`}
         rightAction={
@@ -49,7 +50,7 @@ const FieldsPage = () => {
         }
       />
 
-      <div className="pt-14 p-4 space-y-4">
+      <div className="p-4 space-y-4">
         {fields.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🌾</div>

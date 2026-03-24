@@ -16,26 +16,32 @@ const Button = React.forwardRef(
     },
     ref
   ) => {
-    const baseClasses = 'font-semibold rounded-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 min-h-[48px] flex items-center justify-center gap-2';
-    
-    const variantClasses = {
-      primary: 'bg-brand-600 hover:bg-brand-700 text-white focus:ring-brand-500',
-      secondary: 'bg-earth-200 hover:bg-earth-300 text-earth-900 focus:ring-earth-500',
-      danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
-      ghost: 'bg-transparent hover:bg-earth-100 text-earth-700 focus:ring-earth-500',
-      outline: 'border border-earth-300 bg-transparent hover:bg-earth-50 text-earth-700 focus:ring-earth-500',
+    const base =
+      'font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 min-h-[44px] flex items-center justify-center gap-2 active:scale-[0.97]';
+
+    const variants = {
+      primary:
+        'text-white focus:ring-green-400 shadow-md',
+      secondary:
+        'bg-green-50 hover:bg-green-100 text-green-700 focus:ring-green-400',
+      danger:
+        'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
+      ghost:
+        'bg-transparent hover:bg-green-50 text-green-700 focus:ring-green-400',
+      outline:
+        'border border-green-300 bg-white hover:bg-green-50 text-green-700 focus:ring-green-400',
     };
 
-    const sizeClasses = {
-      sm: 'px-3 py-2 text-sm',
-      md: 'px-4 py-3 text-base',
-      lg: 'px-6 py-4 text-lg',
+    const sizes = {
+      sm: 'px-3 py-1.5 text-sm',
+      md: 'px-4 py-2.5 text-sm',
+      lg: 'px-6 py-3.5 text-base',
     };
 
-    const classes = [
-      baseClasses,
-      variantClasses[variant],
-      sizeClasses[size],
+    const cls = [
+      base,
+      variants[variant],
+      sizes[size],
       fullWidth && 'w-full',
       (disabled || loading) && 'opacity-50 cursor-not-allowed',
       className,
@@ -43,11 +49,21 @@ const Button = React.forwardRef(
       .filter(Boolean)
       .join(' ');
 
+    // Gradient style only for primary
+    const style =
+      variant === 'primary'
+        ? {
+            background: 'linear-gradient(135deg, #16a34a, #15803d)',
+            boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
+          }
+        : undefined;
+
     return (
       <button
         ref={ref}
-        className={classes}
+        className={cls}
         disabled={disabled || loading}
+        style={style}
         {...props}
       >
         {loading && <Loader2 className="w-4 h-4 animate-spin" />}
