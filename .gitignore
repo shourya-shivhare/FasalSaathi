@@ -1,8 +1,41 @@
-# Root
+# ── Node ──────────────────────────────────────────────────────────────────────
 node_modules/
+dist/
+
+# ── Python ────────────────────────────────────────────────────────────────────
 .env
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 .venv/
-dist/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# ── ML / YOLO ─────────────────────────────────────────────────────────────────
+# Trained weights — commit only intentionally (large files)
+*.pt
+*.onnx
+*.engine
+
+# YOLO training/eval run artifacts
+runs/
+
+# Annotated output images from inference
+outputs/
+
+# Evaluation result text dump
+ai-service/eval_results.txt
+
+# Compressed dataset archive
+data.zip
+
+# ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
+Thumbs.db
+
+# ── Generated / temp docs at project root (not README.md) ────────────────────
+ml_pipeline_guide.md
+model_eval_results.md
+project_status_scan.md

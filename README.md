@@ -13,9 +13,10 @@
 ### Backend + AI
 | Technology | Purpose |
 |---|---|
-| FastAPI | REST API server |
+| FastAPI | REST API server (port 8000 + 8001) |
 | LangChain | LLM chains, RAG pipeline |
 | LangGraph | Stateful multi-step AI agents |
+| **YOLOv8 (Ultralytics)** | **Real-time pest detection from farm images** |
 | Fine-tuned LLM | Custom model trained on agricultural knowledge base |
 
 ### Database
@@ -49,28 +50,35 @@ FastAPI AI Service  (:8001)      ← LangChain chains + LangGraph agents
 
 ```
 FasalSaathi/
+├── data/                   # YOLO dataset (train/valid/test + data.yaml)
+├── models/
+│   └── best.pt             # Trained YOLOv8 pest detection weights
+│
 ├── frontend/               # React + Vite + Tailwind CSS
 │   └── src/
 │       ├── components/     # common/, layout/, ui/
 │       ├── features/       # auth/, chat/, crop/, dashboard/
 │       ├── pages/
-│       ├── services/       # api.js — unified API client
+│       ├── services/       # unified API client
 │       ├── hooks/
-│       ├── store/          # global state
-│       ├── styles/
+│       ├── store/          # global state (Zustand)
 │       └── utils/
 │
-├── backend/                # FastAPI REST API
+├── backend/                # FastAPI REST API (:8000)
 │   └── app/
-│       ├── api/v1/endpoints/   # auth, users, crops, weather, chat
+│       ├── api/v1/endpoints/   # auth, users, crops, weather, chat, detect
 │       ├── core/               # config, security
 │       ├── db/                 # SQLAlchemy engine & session
 │       ├── models/             # ORM models
 │       ├── schemas/            # Pydantic I/O models
-│       ├── services/           # business logic
-│       └── utils/
+│       └── services/           # business logic
 │
-├── ai-service/             # LangChain + LangGraph AI backend
+├── ai-service/             # LangChain + LangGraph + YOLO AI backend (:8001)
+│   ├── train.py            # YOLOv8 training script
+│   ├── infer.py            # Inference module (CLI + importable)
+│   ├── evaluate.py         # Model evaluation (mAP, P, R, F1)
+│   ├── utils/
+│   │   └── pest_map.py     # Pest → treatment suggestions mapping
 │   └── app/
 │       ├── chains/         # LCEL chains (chat_chain)
 │       ├── graphs/         # LangGraph StateGraphs (crop_advisor)
@@ -86,6 +94,9 @@ FasalSaathi/
 ---
 
 ## Core Features
+
+### 🦟 Real-Time Pest Detection (YOLOv8)
+Upload a photo of your crop and get instant pest identification with confidence scores and treatment recommendations. Trained on a **12-class pest dataset** (Ants, Bees, Beetles, Caterpillars, Earwigs, Earthworms, Grasshoppers, Moths, Slugs, Snails, Wasps, Weevils) achieving **mAP@0.5 = 0.773**.
 
 ### 🌱 Crop & Pest Recommendation
 Recommends the best crops and flags potential pest threats based on the farmer's soil type, location, and season. Powered by a **fine-tuned LLM** trained on a curated agricultural knowledge base using FAISS for retrieval-augmented generation (RAG).
@@ -153,9 +164,21 @@ uvicorn main:app --port 8001 --reload
 
 `.env`:
 ```env
-LLM_API_KEY=your-llm-api-key
-FAISS_INDEX_PATH=./faiss_index
-WEATHER_API_KEY=your-weather-api-key
+GOOGLE_API_KEY=your-google-api-key
+YOLO_WEIGHTS_PATH=models/best.pt
+YOLO_CONF_THRESHOLD=0.35
+```
+
+### 4. ML Pipeline (Pest Detection)
+```bash
+# Train model (from project root)
+python ai-service/train.py --epochs 10
+
+# Evaluate model on test set
+python ai-service/evaluate.py
+
+# Run inference on a single image
+python ai-service/infer.py --image path/to/crop_photo.jpg
 ```
 
 ---
@@ -169,6 +192,7 @@ WEATHER_API_KEY=your-weather-api-key
 | GET | `/api/v1/crops/` | Backend | List all crops |
 | GET | `/api/v1/weather/current` | Backend | Current weather |
 | POST | `/api/v1/chat/` | Backend → AI | Chat with the AI assistant |
+| **POST** | **`/api/v1/detect`** | **Backend** | **Upload image → pest detection + suggestions** |
 | POST | `/api/chat/` | AI Service | General farming chatbot (LangChain) |
 | POST | `/api/crop-advisor/` | AI Service | Crop advisor agent (LangGraph) |
 
