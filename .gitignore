@@ -34,3 +34,8 @@ data.zip
 # ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+
+# ── Generated / temp docs at project root (not README.md) ────────────────────
+ml_pipeline_guide.md
+model_eval_results.md
+project_status_scan.md
