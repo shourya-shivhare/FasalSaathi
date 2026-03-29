@@ -26,10 +26,10 @@ const ChatInput = ({ onSendMessage, disabled = false, isListening = false, onTog
 
   return (
     <div
-      className="relative"
+      className="relative transition-colors duration-300"
       style={{
-        background: '#ffffff',
-        borderTop: '1px solid #e7e5e4',
+        background: 'var(--color-bg-secondary)',
+        borderTop: '1px solid var(--color-border)',
         padding: '8px 12px',
         paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
       }}
@@ -41,22 +41,28 @@ const ChatInput = ({ onSendMessage, disabled = false, isListening = false, onTog
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            className="absolute bottom-full left-0 right-0 flex items-center justify-center gap-2 py-2 bg-red-50 border-t border-red-200"
+            className="absolute bottom-full left-0 right-0 flex items-center justify-center gap-2 py-2 border-t"
+            style={{ 
+              backgroundColor: 'var(--color-bg-secondary)', 
+              borderColor: 'var(--color-danger)',
+              color: 'var(--color-danger)'
+            }}
           >
             <span className="flex gap-1">
               {[0, 1, 2, 3].map((i) => (
                 <span
                   key={i}
-                  className="w-1 rounded-full bg-red-500"
+                  className="w-1 rounded-full"
                   style={{
                     height: `${12 + Math.sin(i) * 6}px`,
+                    backgroundColor: 'var(--color-danger)',
                     animation: `bounce 0.8s ease-in-out ${i * 0.1}s infinite`,
                     display: 'inline-block',
                   }}
                 />
               ))}
             </span>
-            <span className="text-sm font-medium text-red-600">Listening…</span>
+            <span className="text-sm font-medium">Listening…</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -64,8 +70,11 @@ const ChatInput = ({ onSendMessage, disabled = false, isListening = false, onTog
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
         {/* Input pill */}
         <div
-          className="flex-1 flex items-center gap-1 rounded-full px-4 py-2 min-h-[44px]"
-          style={{ background: '#f4f4f5', border: '1px solid #e4e4e7' }}
+          className="flex-1 flex items-center gap-1 rounded-2xl px-4 py-2 min-h-[44px] transition-colors"
+          style={{ 
+            background: 'var(--color-bg-primary)', 
+            border: '1px solid var(--color-border)' 
+          }}
         >
           <textarea
             ref={inputRef}
@@ -80,8 +89,12 @@ const ChatInput = ({ onSendMessage, disabled = false, isListening = false, onTog
             placeholder="Message FasalSaathi…"
             disabled={disabled || isListening}
             rows={1}
-            className="flex-1 bg-transparent text-sm text-stone-800 resize-none outline-none placeholder-stone-400 leading-relaxed"
-            style={{ maxHeight: '120px', overflowY: 'auto' }}
+            className="flex-1 bg-transparent text-sm resize-none outline-none leading-relaxed transition-colors"
+            style={{ 
+              maxHeight: '120px', 
+              overflowY: 'auto',
+              color: 'var(--color-text-primary)',
+            }}
           />
         </div>
 
@@ -96,9 +109,9 @@ const ChatInput = ({ onSendMessage, disabled = false, isListening = false, onTog
               exit={{ scale: 0, rotate: 30 }}
               transition={{ type: 'spring', stiffness: 400, damping: 20 }}
               className="w-11 h-11 flex items-center justify-center rounded-full text-white shadow-md active:scale-95"
-              style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+              style={{ background: 'var(--color-accent-primary)' }}
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-5 h-5 text-white" />
             </motion.button>
           ) : (
             <motion.button
@@ -110,11 +123,13 @@ const ChatInput = ({ onSendMessage, disabled = false, isListening = false, onTog
               transition={{ type: 'spring', stiffness: 400, damping: 20 }}
               onClick={onToggleListening}
               disabled={disabled}
-              className={`w-11 h-11 flex items-center justify-center rounded-full shadow-md active:scale-95 transition-colors ${
-                isListening
-                  ? 'bg-red-500 text-white animate-pulse'
-                  : 'bg-stone-100 text-stone-600'
+              className={`w-11 h-11 flex items-center justify-center rounded-full shadow-md active:scale-95 transition-all ${
+                isListening ? 'animate-pulse' : ''
               }`}
+              style={{
+                backgroundColor: isListening ? 'var(--color-danger)' : 'var(--color-surface-hover)',
+                color: isListening ? '#ffffff' : 'var(--color-text-secondary)',
+              }}
             >
               {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </motion.button>

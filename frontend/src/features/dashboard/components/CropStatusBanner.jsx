@@ -41,12 +41,12 @@ const CropStatusBanner = ({ field }) => {
   };
 
   return (
-    <Card highlighted>
+    <Card highlighted className="transition-all duration-200">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <span className="text-2xl">{getCropEmoji(field.crop)}</span>
           <div>
-            <h3 className="text-lg font-semibold text-stone-900">
+            <h3 className="text-lg font-semibold theme-text-primary transition-colors duration-200">
               {field.crop}
             </h3>
             <Badge variant="info" className="mt-1">
@@ -56,17 +56,17 @@ const CropStatusBanner = ({ field }) => {
         </div>
         
         <div className="text-right">
-          <div className="text-2xl font-bold text-brand-600">
+          <div className="text-2xl font-bold theme-text-accent-primary transition-colors duration-200">
             {getDaysToHarvest(field.growthStage)}
           </div>
-          <div className="text-xs text-stone-500">days to harvest</div>
+          <div className="text-xs theme-text-secondary opacity-80 transition-colors duration-200">days to harvest</div>
         </div>
       </div>
 
       <div>
-        <div className="flex justify-between text-xs text-stone-600 mb-2">
+        <div className="flex justify-between text-xs theme-text-secondary mb-2 transition-colors duration-200">
           <span>Growth Progress</span>
-          <span>{Math.round(getProgressPercentage(field.growthStage))}%</span>
+          <span className="font-medium theme-text-primary">{Math.round(getProgressPercentage(field.growthStage))}%</span>
         </div>
         
         <ProgressBar
@@ -75,7 +75,7 @@ const CropStatusBanner = ({ field }) => {
           className="mb-3"
         />
 
-        <div className="flex justify-between text-xs">
+        <div className="flex justify-between text-[10px] sm:text-xs">
           {GROWTH_STAGES.map((stage, index) => {
             const currentIndex = getCurrentStageIndex(field.growthStage);
             const isCompleted = index < currentIndex;
@@ -84,16 +84,16 @@ const CropStatusBanner = ({ field }) => {
             return (
               <div
                 key={stage}
-                className={`flex flex-col items-center ${
-                  isCompleted ? 'text-green-600' : isCurrent ? 'text-brand-600' : 'text-stone-400'
-                }`}
+                className={`flex flex-col items-center flex-1 ${
+                  isCompleted ? 'theme-text-success' : isCurrent ? 'theme-text-accent-primary' : 'theme-text-secondary'
+                } transition-colors duration-200`}
               >
                 <div
                   className={`w-2 h-2 rounded-full mb-1 ${
-                    isCompleted ? 'bg-green-600' : isCurrent ? 'bg-brand-600' : 'bg-stone-300'
-                  }`}
+                    isCompleted ? 'theme-bg-success' : isCurrent ? 'theme-bg-accent-primary' : 'theme-bg-surface-hover'
+                  } transition-colors duration-200`}
                 />
-                <span className="max-w-[60px] text-center leading-tight">
+                <span className="max-w-[50px] text-center leading-tight opacity-90">
                   {stage}
                 </span>
               </div>

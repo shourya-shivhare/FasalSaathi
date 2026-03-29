@@ -42,4 +42,5 @@ export const ACTION_CARD_TYPES = {
   PEST_ALERT: 'pest_alert',
   SCHEME: 'scheme',
   MARKET_PRICE: 'market_price',
+  SCAN: 'scan',
 };

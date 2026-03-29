@@ -7,13 +7,13 @@ const WeatherCard = ({ weather }) => {
   const getWeatherIcon = (condition) => {
     switch (condition.toLowerCase()) {
       case 'sunny':
-        return <Sun className="w-8 h-8 text-amber-500" />;
+        return <Sun className="w-8 h-8 theme-text-warning" />;
       case 'partly cloudy':
-        return <Cloud className="w-8 h-8 text-stone-400" />;
+        return <Cloud className="w-8 h-8 theme-text-secondary" />;
       case 'rainy':
-        return <CloudRain className="w-8 h-8 text-blue-500" />;
+        return <CloudRain className="w-8 h-8 theme-text-accent-primary" />;
       default:
-        return <Cloud className="w-8 h-8 text-stone-400" />;
+        return <Cloud className="w-8 h-8 theme-text-secondary" />;
     }
   };
 
@@ -30,16 +30,16 @@ const WeatherCard = ({ weather }) => {
     }
   };
 
-  const getBackgroundGradient = (condition) => {
+  const getStatusBorder = (condition) => {
     switch (condition.toLowerCase()) {
       case 'sunny':
-        return 'bg-gradient-to-br from-amber-50 to-orange-50';
+        return 'border-t-theme-warning';
       case 'partly cloudy':
-        return 'bg-gradient-to-br from-stone-50 to-stone-100';
+        return 'border-t-theme-secondary';
       case 'rainy':
-        return 'bg-gradient-to-br from-blue-50 to-stone-100';
+        return 'border-t-theme-accent-primary';
       default:
-        return 'bg-gradient-to-br from-stone-50 to-stone-100';
+        return 'border-t-theme-border';
     }
   };
 
@@ -51,16 +51,16 @@ const WeatherCard = ({ weather }) => {
   };
 
   return (
-    <Card className={`${getBackgroundGradient(weather.condition)} border-none`}>
+    <Card className={`theme-bg-secondary border-t-4 ${getStatusBorder(weather.condition)} transition-all duration-200`}>
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold text-stone-900">
+            <span className="text-4xl font-bold theme-text-primary transition-colors duration-200">
               {weather.temp}°C
             </span>
             {getWeatherIcon(weather.condition)}
           </div>
-          <p className="text-sm text-stone-600 mt-1">{weather.condition}</p>
+          <p className="text-sm theme-text-secondary mt-1 transition-colors duration-200">{weather.condition}</p>
         </div>
         
         <Badge variant={getRiskBadgeVariant(weather.riskLevel)}>
@@ -70,20 +70,20 @@ const WeatherCard = ({ weather }) => {
 
       <div className="grid grid-cols-2 gap-4 mb-3">
         <div className="flex items-center gap-2">
-          <Droplets className="w-4 h-4 text-blue-500" />
-          <span className="text-sm text-stone-700">
+          <Droplets className="w-4 h-4 theme-text-accent-primary" />
+          <span className="text-sm theme-text-primary opacity-90 transition-colors duration-200">
             {weather.humidity}%
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Wind className="w-4 h-4 text-stone-500" />
-          <span className="text-sm text-stone-700">
+          <Wind className="w-4 h-4 theme-text-secondary" />
+          <span className="text-sm theme-text-primary opacity-90 transition-colors duration-200">
             {weather.windSpeed} km/h
           </span>
         </div>
       </div>
 
-      <div className="text-xs text-stone-500">
+      <div className="text-xs theme-text-secondary opacity-70 transition-colors duration-200">
         Last updated {formatLastUpdated(weather.lastUpdated)}
       </div>
     </Card>

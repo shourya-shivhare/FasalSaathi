@@ -5,11 +5,11 @@ const Badge = React.forwardRef(
     const baseClasses = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium';
     
     const variantClasses = {
-      success: 'bg-green-100 text-green-800',
-      warning: 'bg-amber-100 text-amber-800',
-      danger: 'bg-red-100 text-red-800',
-      info: 'bg-blue-100 text-blue-800',
-      neutral: 'bg-stone-100 text-stone-700',
+      success: 'theme-bg-success text-white transition-colors duration-200',
+      warning: 'theme-bg-warning text-white transition-colors duration-200',
+      danger: 'theme-bg-danger text-white transition-colors duration-200',
+      info: 'theme-bg-accent-secondary text-white transition-colors duration-200',
+      neutral: 'theme-bg-surface-hover theme-text-secondary transition-colors duration-200 border theme-border',
     };
 
     const classes = [

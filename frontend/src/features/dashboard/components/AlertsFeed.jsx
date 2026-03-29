@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertTriangle, Thermometer, Bug, Calendar } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
+import { Button } from '../../../components/ui/Button';
 import { Modal } from '../../../components/ui/Modal';
 import { ALERT_TYPES } from '../../../lib/constants.jsx';
 
@@ -18,18 +19,18 @@ const AlertsFeed = ({ alerts }) => {
     return icons[iconName] || AlertTriangle;
   };
 
-  const getAlertColor = (type) => {
+  const getAlertColorClasses = (type) => {
     switch (type) {
       case ALERT_TYPES.NUTRIENT_DEFICIENCY:
-        return 'text-amber-600 bg-amber-50';
+        return 'theme-text-warning theme-bg-warning/15';
       case ALERT_TYPES.WEATHER_WARNING:
-        return 'text-red-600 bg-red-50';
+        return 'theme-text-danger theme-bg-danger/15';
       case ALERT_TYPES.PEST_DETECTION:
-        return 'text-purple-600 bg-purple-50';
+        return 'theme-text-accent-secondary theme-bg-accent-secondary/15';
       case ALERT_TYPES.SCHEME_DEADLINE:
-        return 'text-blue-600 bg-blue-50';
+        return 'theme-text-accent-primary theme-bg-accent-primary/15';
       default:
-        return 'text-stone-600 bg-stone-50';
+        return 'theme-text-secondary theme-bg-surface-hover';
     }
   };
 
@@ -60,32 +61,32 @@ const AlertsFeed = ({ alerts }) => {
 
   return (
     <>
-      <Card>
-        <h3 className="text-lg font-semibold text-stone-900 mb-3">Alerts</h3>
+      <Card className="transition-all duration-200">
+        <h3 className="text-lg font-semibold theme-text-primary mb-3 transition-colors duration-200">Alerts</h3>
         
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
           {alerts.map((alert) => {
             const Icon = getAlertIcon(alert.icon);
-            const colorClass = getAlertColor(alert.type);
+            const colorClasses = getAlertColorClasses(alert.type);
             
             return (
               <button
                 key={alert.id}
                 onClick={() => setSelectedAlert(alert)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-full border border-stone-200 bg-white hover:bg-stone-50 transition-colors flex-shrink-0 min-w-max`}
+                className={`flex items-center gap-2 px-3 py-2 rounded-full border theme-border theme-bg-primary hover:theme-bg-surface-hover transition-all duration-200 flex-shrink-0 min-w-max shadow-sm`}
               >
-                <div className={`p-1.5 rounded-full ${colorClass}`}>
+                <div className={`p-1.5 rounded-full ${colorClasses} transition-colors duration-200`}>
                   <Icon className="w-3 h-3" />
                 </div>
                 <div className="text-left">
-                  <div className="text-sm font-medium text-stone-900">
+                  <div className="text-sm font-medium theme-text-primary transition-colors duration-200">
                     {alert.title}
                   </div>
-                  <div className="text-xs text-stone-500">
+                  <div className="text-[10px] theme-text-secondary opacity-70 transition-colors duration-200">
                     {formatTimestamp(alert.timestamp)}
                   </div>
                 </div>
-                <Badge variant={getSeverityBadge(alert.severity)} className="ml-1">
+                <Badge variant={getSeverityBadge(alert.severity)} className="ml-1 scale-90">
                   {alert.severity}
                 </Badge>
               </button>
@@ -104,7 +105,7 @@ const AlertsFeed = ({ alerts }) => {
         {selectedAlert && (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-full ${getAlertColor(selectedAlert.type)}`}>
+              <div className={`p-3 rounded-full ${getAlertColorClasses(selectedAlert.type)} transition-colors duration-200`}>
                 {React.createElement(getAlertIcon(selectedAlert.icon), {
                   className: 'w-6 h-6',
                 })}
@@ -113,15 +114,15 @@ const AlertsFeed = ({ alerts }) => {
                 <Badge variant={getSeverityBadge(selectedAlert.severity)}>
                   {selectedAlert.severity.toUpperCase()}
                 </Badge>
-                <div className="text-sm text-stone-500 mt-1">
+                <div className="text-sm theme-text-secondary mt-1 transition-colors duration-200">
                   {formatTimestamp(selectedAlert.timestamp)}
                 </div>
               </div>
             </div>
             
-            <div className="text-stone-700">
+            <div className="theme-text-primary transition-colors duration-200">
               <p className="font-medium mb-2">Details</p>
-              <p className="text-sm leading-relaxed">{selectedAlert.message}</p>
+              <p className="text-sm theme-text-secondary leading-relaxed">{selectedAlert.message}</p>
             </div>
             
             <div className="flex gap-3 pt-2">

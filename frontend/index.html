@@ -10,6 +10,23 @@
     <meta name="apple-mobile-web-app-title" content="FasalSaathi" />
     <meta name="description" content="Mobile-first Progressive Web App for Indian smallholder farmers providing real-time field intelligence through an AI reasoning agent" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function() {
+        try {
+          const saved = localStorage.getItem('theme-storage');
+          let theme = 'light';
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            theme = parsed.state.theme || 'light';
+          } else {
+            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
     <title>FasalSaathi</title>
   </head>
   <body>

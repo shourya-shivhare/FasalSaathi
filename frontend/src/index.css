@@ -1,9 +1,4 @@
-@import "tailwindcss";
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
+/* 
+  This file is intentionally left empty.
+  All styles are defined in src/styles/index.css which is imported by main.jsx.
+*/

@@ -6,14 +6,17 @@ import {
   Map,
   TrendingUp,
   BookOpen,
+  ScanLine,
+  User,
 } from 'lucide-react';
 import { useChatStore } from '../../stores/useChatStore.jsx';
 
 const navItems = [
-  { path: '/',         label: 'Home',     icon: LayoutDashboard },
-  { path: '/chat',     label: 'Chat',     icon: MessageCircle, dot: true },
-  { path: '/fields',   label: 'Fields',   icon: Map },
-  { path: '/market',   label: 'Market',   icon: TrendingUp },
+  { path: '/dashboard', label: 'Home', icon: LayoutDashboard },
+  { path: '/chat', label: 'Chat', icon: MessageCircle, dot: true },
+  { path: '/scan', label: 'Scan', icon: ScanLine },
+  { path: '/profile', label: 'Profile', icon: User },
+  { path: '/market', label: 'Market', icon: TrendingUp },
   { path: '/advisory', label: 'Advisory', icon: BookOpen },
 ];
 
@@ -24,12 +27,15 @@ const BottomNav = () => {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around"
+      className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t"
       style={{
         height: '64px',
-        background: '#ffffff',
-        borderTop: '2px solid #bbf7d0',
         paddingBottom: 'env(safe-area-inset-bottom)',
+        backgroundColor: 'var(--color-topbar-bg)',
+        borderColor: 'var(--color-border)',
+        boxShadow: '0 -1px 0 rgba(0,0,0,0.06), 0 -4px 16px rgba(0,0,0,0.08)',
+        isolation: 'isolate',
+        backdropFilter: 'none',
       }}
     >
       {navItems.map(({ path, label, icon: Icon, dot }) => {
@@ -44,24 +50,29 @@ const BottomNav = () => {
             <div className="relative">
               <div
                 className="w-8 h-8 flex items-center justify-center rounded-xl transition-all"
-                style={
-                  active
-                    ? { background: 'linear-gradient(135deg,#16a34a,#15803d)' }
-                    : {}
-                }
+                style={{
+                  backgroundColor: active ? 'var(--color-section-header-bg)' : 'transparent',
+                }}
               >
                 <Icon
                   className="w-5 h-5 transition-colors"
-                  style={{ color: active ? '#ffffff' : '#78716c' }}
+                  style={{
+                    color: active ? 'var(--color-accent-primary)' : 'var(--color-nav-inactive)',
+                  }}
                 />
               </div>
               {dot && isThinking && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span
+                  className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full animate-pulse"
+                  style={{ backgroundColor: 'var(--color-success)' }}
+                />
               )}
             </div>
             <span
               className="text-[10px] font-semibold transition-colors"
-              style={{ color: active ? '#16a34a' : '#a8a29e' }}
+              style={{
+                color: active ? 'var(--color-accent-primary)' : 'var(--color-nav-inactive)',
+              }}
             >
               {label}
             </span>

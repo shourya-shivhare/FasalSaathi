@@ -17,13 +17,12 @@ import { CROP_TYPES, SOIL_TYPES } from '../../../lib/constants.jsx';
 /* ── Styled input wrapper ─────────────────────────────── */
 const InputGroup = ({ icon: Icon, label, error, children }) => (
   <div className="space-y-1.5">
-    <label className="flex items-center gap-2 text-sm font-semibold text-green-800">
+    <label className="flex items-center gap-2 text-sm font-semibold theme-text-success">
       {Icon && (
         <span
-          className="w-6 h-6 rounded-md flex items-center justify-center"
-          style={{ background: '#dcfce7' }}
+          className="w-6 h-6 rounded-md flex items-center justify-center theme-bg-success/20 transition-colors duration-200"
         >
-          <Icon className="w-3.5 h-3.5 text-green-600" />
+          <Icon className="w-3.5 h-3.5 theme-text-success" />
         </span>
       )}
       {label}
@@ -35,7 +34,7 @@ const InputGroup = ({ icon: Icon, label, error, children }) => (
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
-          className="text-xs text-red-500 font-medium pl-1"
+          className="text-xs theme-text-danger font-medium pl-1"
         >
           {error.message}
         </motion.p>
@@ -45,10 +44,10 @@ const InputGroup = ({ icon: Icon, label, error, children }) => (
 );
 
 const inputCls =
-  'w-full px-4 py-3 bg-white/80 border border-green-200 rounded-xl text-sm text-stone-800 placeholder-stone-400 outline-none transition-all focus:ring-2 focus:ring-green-400/40 focus:border-green-400';
+  'w-full px-4 py-3 theme-bg-secondary/60 border theme-border rounded-xl text-sm theme-text-primary placeholder:theme-text-secondary/50 outline-none transition-all focus:ring-2 focus:ring-theme-accent-primary/40 focus:border-theme-accent-primary';
 
 const selectCls =
-  'w-full px-4 py-3 bg-white/80 border border-green-200 rounded-xl text-sm text-stone-800 outline-none transition-all focus:ring-2 focus:ring-green-400/40 focus:border-green-400 appearance-none';
+  'w-full px-4 py-3 theme-bg-secondary/60 border theme-border rounded-xl text-sm theme-text-primary outline-none transition-all focus:ring-2 focus:ring-theme-accent-primary/40 focus:border-theme-accent-primary appearance-none';
 
 /* ── Main component ──────────────────────────────────── */
 const AddFieldForm = ({ onSubmit, onCancel }) => {
@@ -90,25 +89,21 @@ const AddFieldForm = ({ onSubmit, onCancel }) => {
   };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl" style={{ background: '#f0fdf4' }}>
+    <div className="relative overflow-hidden rounded-2xl theme-bg-primary transition-colors duration-300">
       {/* ── Header strip ─────────────────────────────── */}
       <div
-        className="px-6 py-5"
-        style={{
-          background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
-        }}
+        className="px-6 py-5 theme-bg-accent-primary"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.18)' }}
+              className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/20 transition-colors"
             >
               <Plus className="w-5 h-5 text-white" />
             </div>
             <div>
               <h2 className="text-white font-bold text-lg leading-tight">Add New Field</h2>
-              <p className="text-green-200/80 text-xs mt-0.5">Enter your field details below</p>
+              <p className="text-white/70 text-xs mt-0.5">Enter your field details below</p>
             </div>
           </div>
           {onCancel && (
@@ -148,7 +143,7 @@ const AddFieldForm = ({ onSubmit, onCancel }) => {
               ))}
             </select>
             {/* Chevron */}
-            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-stone-400">
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 theme-text-secondary opacity-50">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="m6 9 6 6 6-6" />
               </svg>
@@ -174,7 +169,7 @@ const AddFieldForm = ({ onSubmit, onCancel }) => {
                 <option value="acres">Acres</option>
                 <option value="hectares">Hectares</option>
               </select>
-              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-stone-400">
+              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 theme-text-secondary opacity-50">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="m6 9 6 6 6-6" />
                 </svg>
@@ -195,7 +190,7 @@ const AddFieldForm = ({ onSubmit, onCancel }) => {
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
-            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-stone-400">
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 theme-text-secondary opacity-50">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="m6 9 6 6 6-6" />
               </svg>
@@ -211,15 +206,11 @@ const AddFieldForm = ({ onSubmit, onCancel }) => {
               type="button"
               onClick={handleGetLocation}
               disabled={isGettingLocation}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.98]"
-              style={{
-                background: isGettingLocation
-                  ? '#d1fae5'
-                  : 'linear-gradient(135deg, #16a34a, #15803d)',
-                color: isGettingLocation ? '#16a34a' : '#ffffff',
-                border: isGettingLocation ? '1px solid #a7f3d0' : 'none',
-                boxShadow: isGettingLocation ? 'none' : '0 2px 8px rgba(22,163,74,0.3)',
-              }}
+              className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] ${
+                isGettingLocation 
+                  ? 'theme-bg-secondary theme-text-accent-primary border theme-border' 
+                  : 'theme-bg-accent-primary text-white shadow-lg shadow-theme-accent-primary/30'
+              }`}
             >
               {isGettingLocation ? (
                 <>
@@ -241,11 +232,10 @@ const AddFieldForm = ({ onSubmit, onCancel }) => {
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center gap-2 p-3 rounded-xl"
-                  style={{ background: '#dcfce7', border: '1px solid #bbf7d0' }}
+                  className="flex items-center gap-2 p-3 rounded-xl theme-bg-success/20 border border-theme-success/30 transition-colors duration-200"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
-                  <span className="text-sm text-green-800 font-medium">
+                  <CheckCircle2 className="w-4 h-4 theme-text-success flex-shrink-0" />
+                  <span className="text-sm theme-text-success font-medium">
                     📍 {location.village}, {location.district}, {location.state}
                   </span>
                 </motion.div>
@@ -267,22 +257,13 @@ const AddFieldForm = ({ onSubmit, onCancel }) => {
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.98]"
-            style={{
-              background: '#ffffff',
-              color: '#16a34a',
-              border: '1px solid #bbf7d0',
-            }}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold theme-bg-primary theme-text-accent-primary border theme-border transition-all active:scale-[0.98] hover:theme-bg-surface-hover"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98]"
-            style={{
-              background: 'linear-gradient(135deg, #16a34a, #15803d)',
-              boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
-            }}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white theme-bg-accent-primary transition-all active:scale-[0.98] shadow-lg shadow-theme-accent-primary/25"
           >
             <Plus className="w-4 h-4" />
             Add Field

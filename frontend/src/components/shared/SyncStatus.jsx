@@ -20,8 +20,8 @@ const SyncStatus = ({ isOnline = true, lastSync }) => {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <div className={`flex items-center gap-1 ${isOnline ? 'text-green-600' : 'text-stone-400'}`}>
+    <div className="flex items-center gap-2 transition-colors duration-200">
+      <div className={`flex items-center gap-1 transition-colors duration-200 ${isOnline ? 'theme-text-success' : 'theme-text-secondary opacity-80'}`}>
         {isOnline ? (
           <Wifi className="w-4 h-4" />
         ) : (
@@ -33,7 +33,7 @@ const SyncStatus = ({ isOnline = true, lastSync }) => {
       </div>
       
       {lastSync && (
-        <span className="text-xs text-stone-500">
+        <span className="text-xs theme-text-secondary opacity-60">
           {formatLastSync(lastSync)}
         </span>
       )}

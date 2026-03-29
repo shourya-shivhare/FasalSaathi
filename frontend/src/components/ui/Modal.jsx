@@ -20,8 +20,7 @@ const Modal = React.forwardRef(
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0"
-              style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-all duration-300"
               onClick={onClose}
             />
 
@@ -32,19 +31,12 @@ const Modal = React.forwardRef(
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              className={`relative w-full ${sizeClasses[size]} rounded-2xl overflow-hidden shadow-2xl ${className}`}
-              style={{
-                background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
-              }}
+              className={`relative w-full ${sizeClasses[size]} rounded-2xl overflow-hidden shadow-2xl theme-bg-primary border theme-border transition-all duration-300 ${className}`}
             >
               {/* Title header (only for modals that pass title — AddFieldForm brings its own) */}
               {title && (
                 <div
-                  className="flex items-center justify-between px-5 py-4"
-                  style={{
-                    background: 'linear-gradient(135deg, #16a34a, #15803d)',
-                  }}
+                  className="flex items-center justify-between px-5 py-4 theme-bg-accent-primary transition-colors duration-200"
                 >
                   <h2 className="text-white font-bold text-base">{title}</h2>
                   {onClose && (
@@ -59,7 +51,7 @@ const Modal = React.forwardRef(
               )}
 
               {/* Content */}
-              <div>{children}</div>
+              <div className="theme-text-primary transition-colors duration-200">{children}</div>
             </motion.div>
           </div>
         )}

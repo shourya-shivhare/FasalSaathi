@@ -40,9 +40,9 @@ const SoilHealthGrid = ({ soil }) => {
         const progressValue = getProgressBarValue(nutrient.key, nutrient.value);
 
         return (
-          <Card key={nutrient.key} className="p-3">
+          <Card key={nutrient.key} className="p-3 transition-all duration-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-stone-700">
+              <span className="text-sm font-medium theme-text-primary transition-colors duration-200">
                 {nutrient.name}
               </span>
               <Badge variant={status === 'good' ? 'success' : 'danger'}>
@@ -50,9 +50,9 @@ const SoilHealthGrid = ({ soil }) => {
               </Badge>
             </div>
             
-            <div className="text-lg font-semibold text-stone-900 mb-2">
+            <div className="text-lg font-semibold theme-text-primary mb-2 transition-colors duration-200">
               {nutrient.value}
-              {nutrient.unit && <span className="text-sm font-normal text-stone-500"> {nutrient.unit}</span>}
+              {nutrient.unit && <span className="text-sm font-normal theme-text-secondary ml-1 transition-colors duration-200"> {nutrient.unit}</span>}
             </div>
             
             <ProgressBar

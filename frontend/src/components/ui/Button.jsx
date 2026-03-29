@@ -21,19 +21,19 @@ const Button = React.forwardRef(
 
     const variants = {
       primary:
-        'text-white focus:ring-green-400 shadow-md',
+        'text-white focus:ring-offset-theme-bg-primary transition-all duration-200',
       secondary:
-        'bg-green-50 hover:bg-green-100 text-green-700 focus:ring-green-400',
+        'theme-bg-surface-hover theme-text-primary hover:opacity-80 transition-all duration-200',
       danger:
-        'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
+        'theme-bg-danger text-white hover:opacity-90 transition-all duration-200',
       ghost:
-        'bg-transparent hover:bg-green-50 text-green-700 focus:ring-green-400',
+        'bg-transparent theme-text-primary hover:theme-bg-surface-hover transition-all duration-200',
       outline:
-        'border border-green-300 bg-white hover:bg-green-50 text-green-700 focus:ring-green-400',
+        'border theme-border theme-bg-secondary theme-text-primary hover:theme-bg-surface-hover transition-all duration-200',
     };
 
     const sizes = {
-      sm: 'px-3 py-1.5 text-sm',
+      sm: 'px-3 py-1.5 text-xs',
       md: 'px-4 py-2.5 text-sm',
       lg: 'px-6 py-3.5 text-base',
     };
@@ -49,12 +49,12 @@ const Button = React.forwardRef(
       .filter(Boolean)
       .join(' ');
 
-    // Gradient style only for primary
+    // Dynamic style based on theme variables
     const style =
       variant === 'primary'
         ? {
-            background: 'linear-gradient(135deg, #16a34a, #15803d)',
-            boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
+            backgroundColor: 'var(--color-accent-primary)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
           }
         : undefined;
 

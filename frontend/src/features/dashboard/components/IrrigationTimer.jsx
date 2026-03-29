@@ -4,7 +4,12 @@ import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+import { useThemeStore } from '../../../stores/useThemeStore';
+
 const IrrigationTimer = ({ irrigation }) => {
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
+
   const formatDate = (date) => {
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -32,25 +37,27 @@ const IrrigationTimer = ({ irrigation }) => {
     }));
   };
 
+  const chartColor = isDark ? '#6DBF5A' : '#4A7C3F';
+
   return (
-    <Card>
+    <Card className="transition-all duration-200">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Droplets className="w-5 h-5 text-blue-500" />
-          <h3 className="text-lg font-semibold text-stone-900">Irrigation</h3>
+          <Droplets className="w-5 h-5 theme-text-accent-primary" />
+          <h3 className="text-lg font-semibold theme-text-primary transition-colors duration-200">Irrigation</h3>
         </div>
       </div>
 
       <div className="space-y-4">
         {/* Next Irrigation */}
-        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+        <div className="flex items-center justify-between p-3 theme-bg-secondary border theme-border rounded-lg transition-colors duration-200">
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-blue-600" />
+            <Calendar className="w-4 h-4 theme-text-accent-primary" />
             <div>
-              <div className="text-sm font-medium text-stone-900">
+              <div className="text-sm font-medium theme-text-primary transition-colors duration-200">
                 Next irrigation
               </div>
-              <div className="text-sm text-stone-600">
+              <div className="text-sm theme-text-secondary transition-colors duration-200">
                 {formatDate(irrigation.nextScheduled)}
               </div>
             </div>
@@ -62,25 +69,24 @@ const IrrigationTimer = ({ irrigation }) => {
           variant="primary"
           fullWidth
           size="lg"
-          className="bg-green-600 hover:bg-green-700"
         >
           Start Irrigation Now
         </Button>
 
         {/* Last Run Info */}
         <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2 text-stone-600">
+          <div className="flex items-center gap-2 theme-text-secondary transition-colors duration-200">
             <Clock className="w-4 h-4" />
             <span>Last run: {formatLastRun(irrigation.lastRun)}</span>
           </div>
-          <span className="text-stone-500">
+          <span className="theme-text-secondary opacity-70 transition-colors duration-200">
             {irrigation.durationMins} mins
           </span>
         </div>
 
         {/* Weekly Water Usage Chart */}
         <div>
-          <div className="text-sm font-medium text-stone-700 mb-2">
+          <div className="text-sm font-medium theme-text-primary opacity-80 mb-2 transition-colors duration-200">
             Weekly Water Usage
           </div>
           <div className="h-24 w-full">
@@ -88,32 +94,34 @@ const IrrigationTimer = ({ irrigation }) => {
               <AreaChart data={prepareChartData()}>
                 <defs>
                   <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#16a34a" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#16a34a" stopOpacity={0.1}/>
+                    <stop offset="5%" stopColor={chartColor} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={chartColor} stopOpacity={0.1}/>
                   </linearGradient>
                 </defs>
                 <XAxis 
                   dataKey="day"
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 10, fill: isDark ? '#9A9181' : '#5C5346' }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis 
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 10, fill: isDark ? '#9A9181' : '#5C5346' }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: '#f5f5f4', 
-                    border: '1px solid #e7e5e4',
-                    borderRadius: '0.5rem'
+                    backgroundColor: isDark ? '#242B1E' : '#EDE5D0', 
+                    border: `1px solid ${isDark ? '#3A4232' : '#D6CCB8'}`,
+                    borderRadius: '0.5rem',
+                    color: isDark ? '#EDE8DC' : '#1C1C1A'
                   }}
+                  itemStyle={{ color: isDark ? '#EDE8DC' : '#1C1C1A' }}
                 />
                 <Area 
                   type="monotone" 
                   dataKey="usage" 
-                  stroke="#16a34a" 
+                  stroke={chartColor} 
                   fillOpacity={1}
                   fill="url(#colorUsage)"
                 />

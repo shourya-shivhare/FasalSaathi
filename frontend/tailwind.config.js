@@ -7,6 +7,27 @@ export default {
   theme: {
     extend: {
       colors: {
+        theme: {
+          bg: {
+            primary: 'var(--color-bg-primary)',
+            secondary: 'var(--color-bg-secondary)',
+          },
+          accent: {
+            primary: 'var(--color-accent-primary)',
+            secondary: 'var(--color-accent-secondary)',
+          },
+          text: {
+            primary: 'var(--color-text-primary)',
+            secondary: 'var(--color-text-secondary)',
+          },
+          border: 'var(--color-border)',
+          surface: {
+            hover: 'var(--color-surface-hover)',
+          },
+          success: 'var(--color-success)',
+          warning: 'var(--color-warning)',
+          danger: 'var(--color-danger)',
+        },
         brand: {
           50: '#f0fdf4',
           100: '#dcfce7',
@@ -28,6 +49,10 @@ export default {
         'card': '1rem',
         'button': '0.75rem',
       },
+      boxShadow: {
+        'theme-sm': '0 1px 2px 0 var(--color-border)',
+        'theme-md': '0 4px 6px -1px var(--color-border)',
+      }
     },
   },
   plugins: [],

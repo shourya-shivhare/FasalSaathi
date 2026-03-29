@@ -45,12 +45,12 @@ const MessageList = ({ messages, isThinking }) => {
 
   return (
     <div
-      className="flex-1 overflow-y-auto px-3 py-2"
+      className="flex-1 overflow-y-auto px-3 py-2 transition-colors duration-300"
       style={{
         backgroundImage:
           'radial-gradient(circle at 1px 1px, rgba(22,163,74,0.04) 1px, transparent 0)',
         backgroundSize: '24px 24px',
-        backgroundColor: '#f0fdf4',
+        backgroundColor: 'var(--color-bg-primary)',
       }}
     >
       {items.map((item) =>

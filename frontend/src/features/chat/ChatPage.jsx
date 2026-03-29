@@ -40,12 +40,12 @@ const ChatPage = () => {
      *  └─ ChatInput (sticky bottom) ──────────────────────┘
      */
     <div
-      className="flex flex-col"
+      className="flex flex-col transition-colors duration-300"
       style={{
         /* subtract bottom-nav height (64px) so input is never hidden */
         height: 'calc(100dvh - 64px)',
         maxHeight: 'calc(100dvh - 64px)',
-        background: '#f0fdf4',
+        background: 'var(--color-bg-primary)',
       }}
     >
       {/* Green WhatsApp-style header */}

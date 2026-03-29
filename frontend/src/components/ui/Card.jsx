@@ -2,9 +2,10 @@ import React from 'react';
 
 const Card = React.forwardRef(
   ({ children, noPadding = false, highlighted = false, className = '', ...props }, ref) => {
-    const baseClasses = 'bg-white rounded-card shadow-sm border border-stone-100';
+    const baseClasses = 'theme-bg-secondary rounded-card shadow-sm border theme-border transition-colors duration-200';
     const paddingClasses = noPadding ? '' : 'p-4';
-    const highlightedClasses = highlighted ? 'border-l-4 border-l-brand-500' : '';
+    const highlightedClasses = highlighted ? 'border-l-4' : '';
+    const highlightedStyle = highlighted ? { borderLeftColor: 'var(--color-accent-primary)' } : {};
 
     const classes = [
       baseClasses,
@@ -16,7 +17,7 @@ const Card = React.forwardRef(
       .join(' ');
 
     return (
-      <div ref={ref} className={classes} {...props}>
+      <div ref={ref} className={classes} style={highlightedStyle} {...props}>
         {children}
       </div>
     );

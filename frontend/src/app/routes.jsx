@@ -1,6 +1,6 @@
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { ChatPage } from '../features/chat/ChatPage';
-import { FieldsPage } from '../features/fields/FieldsPage';
+import { ProfilePage } from '../features/profile/ProfilePage';
 import { MarketPage } from '../features/market/MarketPage';
 import { AdvisoryPage } from '../features/advisory/AdvisoryPage';
 import { OnboardingFlow } from '../features/onboarding/OnboardingFlow';
@@ -17,8 +17,8 @@ export const routes = [
     protected: true,
   },
   {
-    path: '/fields',
-    component: FieldsPage,
+    path: '/profile',
+    component: ProfilePage,
     protected: true,
   },
   {

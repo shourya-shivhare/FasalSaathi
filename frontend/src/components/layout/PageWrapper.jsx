@@ -8,9 +8,11 @@ import React from 'react';
  */
 const PageWrapper = ({ children, className = '' }) => (
   <div
-    className={`min-h-dvh overflow-y-auto ${className}`}
+    className={`min-h-dvh overflow-y-auto transition-colors duration-300 ${className}`}
     style={{
-      background: '#f0fdf4',
+      position: 'relative',
+      zIndex: 0,
+      background: 'var(--color-bg-primary)',
       paddingTop: '60px',
       paddingBottom: '64px',
     }}
