@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends
+from app.api import deps
+from app.models.user import User
+from app.schemas.user import User as UserSchema
 
 router = APIRouter()
 
-
-@router.get("/me")
-async def get_current_user():
-    # TODO: decode JWT, fetch user from DB
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+@router.get("/me", response_model=UserSchema)
+def get_current_user(current_user: User = Depends(deps.get_current_user)):
+    return current_user
