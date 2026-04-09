@@ -1,128 +1,88 @@
+// src/stores/useChatStore.jsx
+// Connects to the real FasalSaathi AI service via the backend proxy.
 import { create } from 'zustand';
-import { mockChatMessages, mockAgentSteps } from '../lib/mockData';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+
+// ── session ID persisted across page refreshes ─────────────────────────────
+function getOrCreateSessionId() {
+  let sid = localStorage.getItem('fasalsaathi_session_id');
+  if (!sid) {
+    sid = `sess-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem('fasalsaathi_session_id', sid);
+  }
+  return sid;
+}
 
 export const useChatStore = create((set, get) => ({
-  messages: mockChatMessages,
+  messages: [],          // { role: 'user'|'assistant', content: string, id: string }
   isThinking: false,
-  agentSteps: mockAgentSteps,
-  suggestions: [
-    'What fertilizer should I use?',
-    'Show weather forecast',
-    'Nearest Krishi Kendra',
-    "Today's mandi prices",
-  ],
   isListening: false,
+  sessionId: getOrCreateSessionId(),
 
+  // ── Send a message and await the AI response ─────────────────────────────
   sendMessage: async (text) => {
-    const userMessage = {
-      id: `msg-${Date.now()}`,
-      role: 'user',
-      text,
-      timestamp: new Date(),
-    };
+    if (!text?.trim()) return;
 
-    set((state) => ({
-      messages: [...state.messages, userMessage],
-      isThinking: true,
-      agentSteps: state.agentSteps.map((step) => ({
-        ...step,
-        status: 'pending',
-      })),
-    }));
+    const userMsg = { id: `u-${Date.now()}`, role: 'user', content: text };
+    set((state) => ({ messages: [...state.messages, userMsg], isThinking: true }));
 
-    // Simulate agent thinking process
-    setTimeout(() => {
-      get().appendAgentStep({
-        id: 'step-1',
-        label: 'Analyzing query',
-        status: 'done',
-        detail: 'Understanding your question',
+    try {
+      const { messages, sessionId } = get();
+
+      // Build the messages array for the API — all messages including the new one
+      const apiMessages = messages.map((m) => ({ role: m.role, content: m.content }));
+
+      const res = await fetch(`${API_BASE}/chat/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: apiMessages,
+          session_id: sessionId,
+        }),
       });
-    }, 1000);
 
-    setTimeout(() => {
-      get().appendAgentStep({
-        id: 'step-2',
-        label: 'Checking field data',
-        status: 'done',
-        detail: 'Retrieving relevant information',
-      });
-    }, 2000);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
 
-    setTimeout(() => {
-      get().appendAgentStep({
-        id: 'step-3',
-        label: 'Generating response',
-        status: 'done',
-        detail: 'Preparing recommendations',
-      });
-    }, 3000);
+      const data = await res.json();
+      const answer = data.answer || 'Maafi chahta hoon, abhi jawab dene mein dikkat aa rahi hai.';
 
-    // Simulate agent response
-    setTimeout(() => {
-      const agentMessage = {
-        id: `msg-${Date.now() + 1}`,
-        role: 'agent',
-        text: 'I understand your question. Based on your field data and current conditions, here are my recommendations...',
-        timestamp: new Date(),
-      };
+      // Update session ID if the server returned a new one
+      if (data.session_id && data.session_id !== sessionId) {
+        localStorage.setItem('fasalsaathi_session_id', data.session_id);
+        set({ sessionId: data.session_id });
+      }
 
+      const aiMsg = { id: `a-${Date.now()}`, role: 'assistant', content: answer };
       set((state) => ({
-        messages: [...state.messages, agentMessage],
+        messages: [...state.messages, aiMsg],
         isThinking: false,
-        suggestions: [
-          'Tell me more about this',
-          'What should I do next?',
-          'Show me field details',
-          'Check weather impact',
-        ],
       }));
-    }, 4000);
+    } catch (err) {
+      console.error('[ChatStore] sendMessage failed:', err);
+      const errorMsg = {
+        id: `e-${Date.now()}`,
+        role: 'assistant',
+        content:
+          '⚠️ AI service se connection nahi ho pa raha. Kripya backend server check karein aur dobara try karein.',
+      };
+      set((state) => ({
+        messages: [...state.messages, errorMsg],
+        isThinking: false,
+      }));
+    }
   },
 
-  appendAgentStep: (step) => {
-    set((state) => ({
-      agentSteps: state.agentSteps.map((s) =>
-        s.id === step.id ? { ...s, ...step } : s
-      ),
-    }));
-  },
-
-  resolveStep: (stepId) => {
-    set((state) => ({
-      agentSteps: state.agentSteps.map((step) =>
-        step.id === stepId ? { ...step, status: 'done' } : step
-      ),
-    }));
-  },
-
-  setThinking: (isThinking) => {
-    set({ isThinking });
-  },
-
-  addAgentMessage: ({ text, actionCard }) => {
-    const message = {
-      id: `msg-${Date.now()}`,
-      role: 'agent',
-      text,
-      timestamp: new Date(),
-      ...(actionCard && { actionCard }),
-    };
-
-    set((state) => ({
-      messages: [...state.messages, message],
-    }));
-  },
-
+  // ── Clear conversation (new chat) ─────────────────────────────────────────
   clearChat: () => {
-    set({
-      messages: [],
-      agentSteps: [],
-      isThinking: false,
-    });
+    const newSid = `sess-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem('fasalsaathi_session_id', newSid);
+    set({ messages: [], isThinking: false, sessionId: newSid });
   },
 
-  setListening: (isListening) => {
-    set({ isListening });
-  },
+  // ── Voice listening toggle ────────────────────────────────────────────────
+  setListening: (isListening) => set({ isListening }),
 }));
