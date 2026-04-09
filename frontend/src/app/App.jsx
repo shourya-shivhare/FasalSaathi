@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AppProviders } from './providers';
-import { BottomNav } from '../components/layout/BottomNav';
+import { Sidebar } from '../components/layout/Sidebar';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { routes } from './routes';
 import { useUserStore } from '../stores/useUserStore.jsx';
@@ -22,7 +22,10 @@ const AppContent = () => {
   const { initTheme } = useThemeStore();
   const location = useLocation();
   const navigate = useNavigate();
-  const hideBottomNav = location.pathname === '/' || location.pathname === '/onboarding';
+
+  // Pages that don't use the sidebar layout
+  const noSidebarRoutes = ['/', '/onboarding'];
+  const showSidebar = !noSidebarRoutes.includes(location.pathname);
 
   useEffect(() => {
     initTheme();
@@ -32,22 +35,30 @@ const AppContent = () => {
     navigate('/dashboard');
   };
 
-  return (
-    <div className="relative min-h-screen theme-bg-primary transition-colors duration-300">
+  if (!showSidebar) {
+    return (
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/scan" element={<ScanPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/chat" element={<ChatPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/market" element={<MarketPage />} />
-        <Route path="/advisory" element={<AdvisoryPage />} />
         <Route path="/onboarding" element={<OnboardingFlow onComplete={handleOnboardingComplete} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      
-      {/* Bottom Navigation */}
-      {!hideBottomNav && <BottomNav />}
+    );
+  }
+
+  return (
+    <div className="app-shell">
+      <Sidebar />
+      <main className="main-content">
+        <Routes>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/scan" element={<ScanPage />} />
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/market" element={<MarketPage />} />
+          <Route path="/advisory" element={<AdvisoryPage />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </main>
     </div>
   );
 };
@@ -65,3 +76,4 @@ const App = () => {
 };
 
 export { App };
+

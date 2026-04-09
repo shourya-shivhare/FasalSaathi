@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     # Memory
     MAX_HISTORY_LENGTH: int = 10
 
+    # YOLO Pest Detection
+    YOLO_WEIGHTS_PATH: str = "models/best.pt"
+    YOLO_CONF_THRESHOLD: float = 0.35
+    YOLO_OUTPUT_DIR: str = "outputs/detections"
+
     class Config:
         env_file = ".env"
         case_sensitive = True

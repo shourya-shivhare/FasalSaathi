@@ -1,171 +1,217 @@
 import React, { useState, useRef } from 'react';
-import { Camera, ScanLine, AlertCircle, CheckCircle2, History, ArrowRight, X } from 'lucide-react';
+import { Camera, ScanLine, CheckCircle2, AlertCircle, History, ArrowRight, X, Upload, Info } from 'lucide-react';
 import { PageWrapper } from '../../components/layout/PageWrapper';
-import { TopBar } from '../../components/layout/TopBar';
-import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 
 const ScanPage = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [scanDone, setScanDone] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
   const mockHistory = [
-    { id: 1, name: 'Aphids', date: '24 Mar', confidence: 92, image: 'https://images.unsplash.com/photo-1628350565513-318a7201f720?auto=format&fit=crop&q=80&w=100' },
-    { id: 2, name: 'Leaf Blight', date: '20 Mar', confidence: 88, image: 'https://images.unsplash.com/photo-1599420186946-7b6fb4e297f0?auto=format&fit=crop&q=80&w=100' },
-    { id: 3, name: 'Spotted Beetle', date: '15 Mar', confidence: 95, image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=100' },
+    { id: 1, name: 'Aphids', date: '24 Mar', confidence: 92, color: '#DC2626' },
+    { id: 2, name: 'Leaf Blight', date: '20 Mar', confidence: 88, color: '#F59E0B' },
+    { id: 3, name: 'Spotted Beetle', date: '15 Mar', confidence: 95, color: '#DC2626' },
   ];
 
-  const handleImageSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedImage(reader.result);
-        setIsScanning(true);
-        // Simulate scanning delay
-        setTimeout(() => setIsScanning(false), 2000);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleFile = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedImage(reader.result);
+      setScanDone(false);
+      setIsScanning(true);
+      setTimeout(() => { setIsScanning(false); setScanDone(true); }, 2200);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const clearImage = () => {
-    setSelectedImage(null);
-    setIsScanning(false);
-  };
+  const handleInputChange = (e) => handleFile(e.target.files[0]);
+  const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); handleFile(e.dataTransfer.files[0]); };
+  const clearImage = () => { setSelectedImage(null); setIsScanning(false); setScanDone(false); };
 
   return (
     <PageWrapper>
-      <TopBar
-        icon={ScanLine}
-        title="Pest Scanner"
-        subtitle="AI-powered crop health detection"
-      />
+      {/* Page Header */}
+      <div style={{ marginBottom: '28px' }}>
+        <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.65rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+          🔍 Pest Scanner
+        </h1>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', margin: '4px 0 0' }}>
+          AI-powered crop health detection using YOLOv8
+        </p>
+      </div>
 
-      <div className="p-4 space-y-6 pb-24">
-        {/* Upload Zone */}
-        {!selectedImage ? (
-          <Card 
-            className="flex flex-col items-center justify-center py-12 border-2 border-dashed theme-border cursor-pointer hover:theme-bg-secondary transition-all active:scale-[0.98]"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <div className="w-16 h-16 rounded-full theme-bg-surface-hover flex items-center justify-center mb-4">
-              <Camera className="w-8 h-8 theme-text-accent-primary" />
-            </div>
-            <p className="text-lg font-bold theme-text-primary">Apni fasal ki photo lo</p>
-            <p className="text-sm theme-text-secondary mt-1">Tap to capture or upload</p>
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              onChange={handleImageSelect}
-              accept="image/*"
-              className="hidden"
-            />
-          </Card>
-        ) : (
-          <div className="relative rounded-2xl overflow-hidden shadow-lg border theme-border">
-            <img src={selectedImage} alt="Crop preview" className="w-full aspect-square object-cover" />
-            <button 
-              onClick={clearImage}
-              className="absolute top-3 right-3 p-2 rounded-full bg-black/40 text-white backdrop-blur-md hover:bg-black/60 transition-colors"
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '24px', alignItems: 'start' }}>
+        {/* LEFT COLUMN */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+          {/* Upload Zone */}
+          {!selectedImage ? (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleDrop}
+              style={{
+                background: isDragging ? 'var(--color-section-header-bg)' : '#fff',
+                border: `2px dashed ${isDragging ? 'var(--color-accent-primary)' : 'var(--color-border)'}`,
+                borderRadius: '20px', padding: '56px 32px', textAlign: 'center',
+                cursor: 'pointer', transition: 'all 0.2s',
+                boxShadow: '0 1px 8px rgba(0,0,0,0.05)',
+              }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-accent-primary)'}
+              onMouseLeave={e => { if (!isDragging) e.currentTarget.style.borderColor = 'var(--color-border)'; }}
             >
-              <X className="w-5 h-5" />
-            </button>
-            {isScanning && (
-              <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] flex flex-col items-center justify-center">
-                <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mb-3" />
-                <p className="text-white font-bold drop-shadow-md">Scanning...</p>
+              <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'var(--color-section-header-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <Camera size={32} color="var(--color-accent-primary)" />
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Result Card */}
-        {(selectedImage || isScanning) && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <Card className="overflow-hidden border-l-4 border-l-theme-accent-primary">
-              <div className="flex items-start justify-between">
-                <div className="flex gap-4">
-                  {selectedImage && (
-                    <div className="w-16 h-16 rounded-lg overflow-hidden border theme-border flex-shrink-0">
-                      <img src={selectedImage} alt="Thumbnail" className="w-full h-full object-cover" />
-                    </div>
-                  )}
+              <p style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 8px' }}>
+                Apni fasal ki photo lo
+              </p>
+              <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', margin: '0 0 24px' }}>
+                Drag & drop karo ya click kar ke upload karo
+              </p>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 22px', background: 'var(--color-accent-primary)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
+                  <Upload size={16} /> Upload Image
+                </button>
+                <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 22px', background: 'transparent', color: 'var(--color-accent-primary)', border: '1.5px solid var(--color-accent-primary)', borderRadius: '12px', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
+                  <Camera size={16} /> Use Camera
+                </button>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-border)', marginTop: '16px' }}>Supported: JPG, PNG, WebP</p>
+              <input type="file" ref={fileInputRef} onChange={handleInputChange} accept="image/*" style={{ display: 'none' }} />
+            </div>
+          ) : (
+            <div style={{ position: 'relative', borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--color-border)', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}>
+              <img src={selectedImage} alt="Crop" style={{ width: '100%', maxHeight: '360px', objectFit: 'cover', display: 'block' }} />
+              <button onClick={clearImage} style={{ position: 'absolute', top: '12px', right: '12px', width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', backdropFilter: 'blur(8px)' }}>
+                <X size={18} />
+              </button>
+              {isScanning && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,76,42,0.6)', backdropFilter: 'blur(3px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+                  <div style={{ width: '56px', height: '56px', border: '4px solid rgba(255,255,255,0.2)', borderTopColor: '#4ADE80', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                   <div>
-                    <h3 className="font-bold text-lg theme-text-primary">
-                      {isScanning ? 'Detecting...' : 'Aphids (Tentative)'}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant={isScanning ? 'neutral' : 'warning'}>
-                        {isScanning ? 'Calculating...' : '87% Confidence'}
-                      </Badge>
-                    </div>
+                    <p style={{ color: '#fff', fontWeight: 700, textAlign: 'center', margin: 0 }}>Analyzing Image...</p>
+                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', textAlign: 'center', margin: '4px 0 0' }}>YOLOv8 pest detection running</p>
                   </div>
                 </div>
-                {!isScanning && <CheckCircle2 className="w-6 h-6 theme-text-success" />}
-              </div>
-            </Card>
-
-            {/* Treatment Panel */}
-            <Card className="theme-bg-secondary border theme-border">
-              <h4 className="font-bold theme-text-primary mb-4 flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 theme-text-warning" />
-                Treatment Plan
-              </h4>
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wider theme-text-secondary">Recommended Treatment</p>
-                  <p className="theme-text-primary font-medium">{isScanning ? '—' : 'Neem Oil Spray (3%)'}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold uppercase tracking-wider theme-text-secondary">Dosage</p>
-                    <p className="theme-text-primary font-medium">{isScanning ? '—' : '200ml per acre'}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold uppercase tracking-wider theme-text-secondary">Urgency</p>
-                    <p className={`${isScanning ? 'theme-text-primary' : 'theme-text-warning'} font-medium`}>
-                      {isScanning ? '—' : 'Medium'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              {!isScanning && (
-                <Button variant="primary" size="sm" className="mt-6" fullWidth icon={ArrowRight}>
-                  View Detailed Guide
-                </Button>
               )}
-            </Card>
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* History Strip */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="font-bold theme-text-primary flex items-center gap-2">
-              <History className="w-5 h-5 theme-text-accent-primary" />
-              Recent Scans
-            </h3>
-            <button className="text-sm font-medium theme-text-accent-primary">See All</button>
-          </div>
-          <div className="flex gap-4 overflow-x-auto pb-4 -mx-1 px-1 scrollbar-hide">
-            {mockHistory.map((scan) => (
-              <div 
-                key={scan.id}
-                className="flex-shrink-0 w-32 backdrop-blur-md theme-bg-secondary p-3 rounded-2xl border theme-border transition-all active:scale-95"
-              >
-                <div className="w-full aspect-square rounded-xl overflow-hidden mb-2">
-                  <img src={scan.image} alt={scan.name} className="w-full h-full object-cover" />
-                </div>
-                <p className="text-xs font-bold theme-text-primary truncate">{scan.name}</p>
-                <p className="text-[10px] theme-text-secondary mt-0.5">{scan.date}</p>
+          {/* Detection Result */}
+          {scanDone && !isScanning && (
+            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', borderLeft: '4px solid var(--color-accent-primary)', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', animation: 'fadeIn 0.4s ease' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <CheckCircle2 size={22} color="var(--color-accent-primary)" />
+                <span style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, color: 'var(--color-accent-primary)', fontSize: '0.95rem' }}>Detection Complete</span>
               </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-text-primary)', margin: '0 0 6px' }}>Aphids (Maahu)</h3>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ background: '#FEF3C7', color: '#92400E', fontSize: '0.78rem', fontWeight: 600, padding: '3px 10px', borderRadius: '20px' }}>87% Confidence</span>
+                    <span style={{ background: '#FEE2E2', color: '#DC2626', fontSize: '0.78rem', fontWeight: 600, padding: '3px 10px', borderRadius: '20px' }}>🔴 Medium Severity</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Treatment Plan */}
+          {scanDone && (
+            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', padding: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+              <h4 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 20px' }}>
+                <AlertCircle size={18} color="#F59E0B" /> Treatment Plan
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                {[
+                  { label: 'Recommended', value: 'Neem Oil Spray (3%)' },
+                  { label: 'Dosage', value: '200ml per acre' },
+                  { label: 'Urgency', value: 'Medium', color: '#F59E0B' },
+                  { label: 'Best Time', value: 'Early Morning' },
+                ].map(item => (
+                  <div key={item.label} style={{ background: 'var(--color-bg-primary)', borderRadius: '10px', padding: '12px 14px' }}>
+                    <p style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-secondary)', margin: '0 0 4px' }}>{item.label}</p>
+                    <p style={{ fontWeight: 600, color: item.color || 'var(--color-text-primary)', margin: 0, fontSize: '0.9rem' }}>{item.value}</p>
+                  </div>
+                ))}
+              </div>
+              <button style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '13px', background: 'var(--color-accent-primary)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}>
+                View Detailed Guide <ArrowRight size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT COLUMN */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+          {/* Recent Scans */}
+          <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', padding: '20px', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <History size={17} color="var(--color-accent-primary)" /> Recent Scans
+              </h3>
+              <button style={{ fontSize: '0.8rem', color: 'var(--color-accent-primary)', fontWeight: 600, border: 'none', background: 'none', cursor: 'pointer' }}>See All</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {mockHistory.map(scan => (
+                <div key={scan.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: 'var(--color-bg-primary)', cursor: 'pointer', transition: 'background 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-section-header-bg)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--color-bg-primary)'}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: `${scan.color}18`, border: `1.5px solid ${scan.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <ScanLine size={16} color={scan.color} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 600, color: 'var(--color-text-primary)', margin: 0, fontSize: '0.875rem' }}>{scan.name}</p>
+                    <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', margin: '1px 0 0' }}>{scan.date}</p>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-accent-primary)', background: 'var(--color-section-header-bg)', padding: '3px 8px', borderRadius: '8px', flexShrink: 0 }}>{scan.confidence}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* How it Works */}
+          <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', padding: '20px', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
+            <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Info size={16} color="var(--color-accent-primary)" /> How It Works
+            </h3>
+            {[
+              { n: 1, title: 'Upload Photo', desc: 'Click a clear image of your affected crop' },
+              { n: 2, title: 'AI Analyzes', desc: 'YOLOv8 model detects pest type & severity' },
+              { n: 3, title: 'Get Treatment', desc: 'Receive detailed treatment recommendations' },
+            ].map(step => (
+              <div key={step.n} style={{ display: 'flex', gap: '14px', marginBottom: '14px', alignItems: 'flex-start' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg,#1A7A40,#2D8F55)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem', flexShrink: 0 }}>{step.n}</div>
+                <div>
+                  <p style={{ fontWeight: 600, color: 'var(--color-text-primary)', margin: '0 0 2px', fontSize: '0.875rem' }}>{step.title}</p>
+                  <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.78rem', margin: 0 }}>{step.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tips */}
+          <div style={{ background: 'linear-gradient(135deg,#1A7A40,#2D8F55)', borderRadius: '16px', padding: '20px 22px' }}>
+            <h4 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", color: '#fff', fontWeight: 700, fontSize: '0.9rem', margin: '0 0 12px' }}>💡 Tips for Best Results</h4>
+            {['Take photo in good natural light', 'Focus clearly on affected leaves', 'Include both healthy & diseased parts', 'Avoid blurry or dark images'].map((tip, i) => (
+              <p key={i} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.8rem', margin: '0 0 6px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                <span style={{ color: '#86EFAC', flexShrink: 0 }}>✓</span> {tip}
+              </p>
             ))}
           </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
     </PageWrapper>
   );
 };

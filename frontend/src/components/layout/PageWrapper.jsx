@@ -1,10 +1,8 @@
 import React from 'react';
 
 /**
- * Standard page shell used by all non-chat pages.
- * Accounts for:
- *   - fixed top bar  : 60px
- *   - fixed bottom nav: 64px
+ * Standard page shell used by all non-Home pages.
+ * Works with the fixed left sidebar layout — no top/bottom bar offsets.
  */
 const PageWrapper = ({ children, className = '' }) => (
   <div
@@ -13,8 +11,7 @@ const PageWrapper = ({ children, className = '' }) => (
       position: 'relative',
       zIndex: 0,
       background: 'var(--color-bg-primary)',
-      paddingTop: '60px',
-      paddingBottom: '64px',
+      padding: '32px',
     }}
   >
     {children}
@@ -22,3 +19,4 @@ const PageWrapper = ({ children, className = '' }) => (
 );
 
 export { PageWrapper };
+
