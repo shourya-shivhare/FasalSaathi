@@ -1,11 +1,7 @@
 import React from 'react';
-import { LayoutDashboard, Camera, ScanLine } from 'lucide-react';
+import { Camera, ScanLine, TrendingUp, Leaf, Bell, CloudSun, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { TopBar } from '../../components/layout/TopBar';
 import { PageWrapper } from '../../components/layout/PageWrapper';
-import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { SyncStatus } from '../../components/shared/SyncStatus';
 import { WeatherCard } from './components/WeatherCard';
 import { SoilHealthGrid } from './components/SoilHealthGrid';
 import { CropStatusBanner } from './components/CropStatusBanner';
@@ -15,31 +11,49 @@ import { useFieldData } from './hooks/useFieldData';
 import { useUserStore } from '../../stores/useUserStore.jsx';
 import { mockAlerts } from '../../lib/mockData.jsx';
 
+const StatCard = ({ icon: Icon, label, value, sub }) => (
+  <div style={{
+    background: '#fff',
+    borderRadius: '16px',
+    padding: '20px 24px',
+    boxShadow: '0 1px 8px rgba(26,122,64,0.07)',
+    border: '1px solid var(--color-border)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    flex: '1',
+    minWidth: '0',
+  }}>
+    <div style={{
+      width: '48px', height: '48px', borderRadius: '12px',
+      background: 'var(--color-section-header-bg)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0,
+    }}>
+      <Icon size={22} color="var(--color-accent-primary)" />
+    </div>
+    <div>
+      <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.1 }}>{value}</div>
+      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>{label}</div>
+      {sub && <div style={{ fontSize: '0.72rem', color: 'var(--color-accent-primary)', fontWeight: 600, marginTop: '2px' }}>{sub}</div>}
+    </div>
+  </div>
+);
+
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { farmer, resetOnboarding } = useUserStore();
-  const {
-    activeField,
-    weather,
-    soil,
-    irrigation,
-    hasFields,
-    isLoading,
-  } = useFieldData();
+  const { activeField, weather, soil, irrigation, hasFields, isLoading } = useFieldData();
 
   if (isLoading) {
     return (
       <PageWrapper>
-        <div className="pt-14 p-4 space-y-4 theme-bg-primary min-h-screen">
-          <div className="animate-pulse space-y-4">
-            <div className="h-24 theme-bg-surface-hover rounded-lg" />
-            <div className="grid grid-cols-2 gap-3">
-              <div className="h-32 theme-bg-surface-hover rounded-lg" />
-              <div className="h-32 theme-bg-surface-hover rounded-lg" />
-            </div>
-            <div className="h-40 theme-bg-surface-hover rounded-lg" />
-            <div className="h-48 theme-bg-surface-hover rounded-lg" />
-            <div className="h-32 theme-bg-surface-hover rounded-lg" />
+        <div className="space-y-4 animate-pulse">
+          <div style={{ height: '80px', background: 'var(--color-surface-hover)', borderRadius: '16px' }} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px' }}>
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} style={{ height: '96px', background: 'var(--color-surface-hover)', borderRadius: '16px' }} />
+            ))}
           </div>
         </div>
       </PageWrapper>
@@ -47,84 +61,153 @@ const DashboardPage = () => {
   }
 
   return (
-    <PageWrapper className="min-h-screen">
-      <TopBar
-        icon={LayoutDashboard}
-        title={hasFields ? activeField?.name || 'My Farm' : 'My Farm'}
-        subtitle={farmer.village}
-        rightAction={<SyncStatus isOnline={true} lastSync={new Date()} />}
-      />
-
-      <div className="p-4 space-y-4 max-w-7xl mx-auto">
-        {/* Weather Card */}
-        <WeatherCard weather={weather} />
-
-        {/* Pest Detection Card */}
-        <Card 
-          className="flex items-center justify-between p-4 cursor-pointer hover:theme-bg-secondary transition-all active:scale-[0.98] border-l-4 border-l-theme-accent-primary"
-          onClick={() => navigate('/scan')}
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl theme-bg-surface-hover flex items-center justify-center">
-              <Camera className="w-6 h-6 theme-text-accent-primary" />
-            </div>
-            <div>
-              <h3 className="font-bold theme-text-primary">Pest Detection</h3>
-              <p className="text-sm theme-text-secondary">Apni fasal scan karo</p>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" icon={ScanLine}>
-            Scan Now
-          </Button>
-        </Card>
-
-        {/* Soil Health Grid */}
+    <PageWrapper>
+      {/* Page Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
-          <h2 className="text-lg font-semibold theme-text-success mb-3 flex items-center gap-2">
-            <span>🌱</span> Soil Health
-          </h2>
-          <SoilHealthGrid soil={soil} />
+          <h1 style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: '1.65rem', fontWeight: 700,
+            color: 'var(--color-text-primary)', margin: 0,
+          }}>
+            Good morning, {farmer?.name?.split(' ')[0] || 'Farmer'} 🌱
+          </h1>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', margin: '4px 0 0' }}>
+            {hasFields ? `Managing ${activeField?.name || 'your farm'} · ${farmer?.village || 'India'}` : 'Welcome to FasalSaathi'}
+          </p>
         </div>
-
-        {/* Crop Status Banner */}
-        {hasFields && activeField && (
-          <CropStatusBanner field={activeField} />
-        )}
-
-        {/* Irrigation Timer */}
-        <IrrigationTimer irrigation={irrigation} />
-
-        {/* Alerts Feed */}
-        <AlertsFeed alerts={mockAlerts} />
-
-        {/* Empty State for No Fields */}
-        {!hasFields && (
-          <div className="text-center py-12 rounded-xl border theme-border theme-bg-secondary transition-all duration-200">
-            <div className="text-6xl mb-4">🌱</div>
-            <h3 className="text-lg font-semibold theme-text-primary mb-2">
-              No fields added yet
-            </h3>
-            <p className="theme-text-secondary mb-4">
-              Add your first field to start tracking your farm
-            </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            background: '#fff', borderRadius: '12px', padding: '8px 16px',
+            border: '1px solid var(--color-border)',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+            fontSize: '0.85rem', color: 'var(--color-text-secondary)',
+          }}>
+            <CloudSun size={18} color="#92400E" />
+            <span>28°C · Sunny</span>
           </div>
-        )}
-
-        {/* Dev Reset Button */}
-        {import.meta.env.DEV && (
-          <div className="flex justify-center mt-8 pb-8">
-            <button
-              onClick={() => {
-                resetOnboarding();
-                window.location.href = '/';
-              }}
-              className="px-4 py-2 bg-red-600/80 text-white font-medium rounded-lg opacity-50 hover:opacity-100 transition-opacity flex items-center gap-2 text-sm"
-            >
-              Reset Testing State (Dev Only)
-            </button>
-          </div>
-        )}
+          <button style={{
+            width: '40px', height: '40px', borderRadius: '12px',
+            background: '#fff', border: '1px solid var(--color-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+          }}>
+            <Bell size={18} color="var(--color-text-secondary)" />
+          </button>
+        </div>
       </div>
+
+      {/* Stats Row */}
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        <StatCard icon={Leaf} label="Crops Monitored" value={hasFields ? '12' : '0'} />
+        <StatCard icon={ShieldAlert} label="Pests Detected" value="3" sub="This month" />
+        <StatCard icon={ScanLine} label="Scans This Week" value="8" />
+        <StatCard icon={TrendingUp} label="Market Index" value="+2.4%" sub="↑ Wheat up today" />
+      </div>
+
+      {/* Scan CTA */}
+      <div
+        onClick={() => navigate('/scan')}
+        style={{
+          background: 'linear-gradient(135deg, #1A7A40, #2D8F55)',
+          borderRadius: '16px',
+          padding: '20px 28px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          marginBottom: '24px',
+          boxShadow: '0 4px 20px rgba(26,122,64,0.25)',
+          transition: 'transform 0.15s, box-shadow 0.15s',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 8px 28px rgba(26,122,64,0.35)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = '';
+          e.currentTarget.style.boxShadow = '0 4px 20px rgba(26,122,64,0.25)';
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{
+            width: '48px', height: '48px', borderRadius: '12px',
+            background: 'rgba(255,255,255,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Camera size={24} color="#fff" />
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1rem', fontWeight: 700, color: '#fff' }}>
+              Scan Your Crop
+            </div>
+            <div style={{ fontSize: '0.83rem', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
+              Upload a photo for instant pest detection
+            </div>
+          </div>
+        </div>
+        <button style={{
+          background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.4)',
+          borderRadius: '20px', padding: '8px 20px', color: '#fff',
+          fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
+          backdropFilter: 'blur(4px)', whiteSpace: 'nowrap',
+        }}>
+          Scan Now →
+        </button>
+      </div>
+
+      {/* Two-column: Weather + Irrigation */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+        <WeatherCard weather={weather} />
+        <IrrigationTimer irrigation={irrigation} />
+      </div>
+
+      {/* Soil Health */}
+      <div style={{ marginBottom: '24px' }}>
+        <h2 style={{
+          fontFamily: "'Plus Jakarta Sans',sans-serif",
+          fontSize: '1.05rem', fontWeight: 700,
+          color: 'var(--color-text-primary)', marginBottom: '12px', marginTop: 0,
+        }}>
+          🌱 Soil Health
+        </h2>
+        <SoilHealthGrid soil={soil} />
+      </div>
+
+      {/* Crop Status */}
+      {hasFields && activeField && <CropStatusBanner field={activeField} />}
+
+      {/* Alerts Feed */}
+      <AlertsFeed alerts={mockAlerts} />
+
+      {/* Empty State */}
+      {!hasFields && (
+        <div style={{
+          textAlign: 'center', padding: '48px', borderRadius: '16px',
+          border: '2px dashed var(--color-border)', background: '#fff', marginTop: '16px',
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '12px' }}>🌱</div>
+          <h3 style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>No fields added yet</h3>
+          <p style={{ color: 'var(--color-text-secondary)', margin: 0 }}>Add your first field to start tracking your farm</p>
+        </div>
+      )}
+
+      {/* Dev Reset */}
+      {import.meta.env.DEV && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '40px', paddingBottom: '16px' }}>
+          <button
+            onClick={() => { resetOnboarding(); window.location.href = '/'; }}
+            style={{
+              padding: '6px 16px', background: 'rgba(220,38,38,0.8)',
+              color: '#fff', borderRadius: '8px', border: 'none',
+              cursor: 'pointer', fontSize: '0.8rem', opacity: 0.6,
+            }}
+          >
+            Reset Testing State (Dev Only)
+          </button>
+        </div>
+      )}
     </PageWrapper>
   );
 };
