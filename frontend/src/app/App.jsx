@@ -14,6 +14,8 @@ import { ProfilePage } from '../features/profile/ProfilePage';
 import { MarketPage } from '../features/market/MarketPage';
 import { AdvisoryPage } from '../features/advisory/AdvisoryPage';
 import { OnboardingFlow } from '../features/onboarding/OnboardingFlow';
+import { LoginPage } from '../features/auth/LoginPage';
+import { SignupPage } from '../features/auth/SignupPage';
 import Home from '../pages/Home';
 import ScanPage from '../pages/scan/ScanPage';
 
@@ -24,7 +26,7 @@ const AppContent = () => {
   const navigate = useNavigate();
 
   // Pages that don't use the sidebar layout
-  const noSidebarRoutes = ['/', '/onboarding'];
+  const noSidebarRoutes = ['/', '/onboarding', '/login', '/signup'];
   const showSidebar = !noSidebarRoutes.includes(location.pathname);
 
   useEffect(() => {
@@ -39,6 +41,8 @@ const AppContent = () => {
     return (
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route path="/onboarding" element={<OnboardingFlow onComplete={handleOnboardingComplete} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

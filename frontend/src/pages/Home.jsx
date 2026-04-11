@@ -29,7 +29,7 @@ const Home = () => {
   const navigate = useNavigate();
   const { isOnboarded } = useUserStore();
 
-  const handleCta = () => navigate(isOnboarded ? '/dashboard' : '/onboarding');
+  const handleCta = () => navigate(isOnboarded ? '/dashboard' : '/signup');
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}>
@@ -67,7 +67,7 @@ const Home = () => {
             <span style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.15rem', fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>FasalSaathi</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button onClick={() => navigate('/dashboard')} style={{ padding: '8px 20px', borderRadius: '20px', border: '1.5px solid rgba(255,255,255,0.25)', background: 'transparent', color: '#fff', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer', transition: 'all 0.15s' }}
+            <button onClick={() => navigate('/login')} style={{ padding: '8px 20px', borderRadius: '20px', border: '1.5px solid rgba(255,255,255,0.25)', background: 'transparent', color: '#fff', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer', transition: 'all 0.15s' }}
               onMouseEnter={e => e.target.style.borderColor = 'rgba(255,255,255,0.6)'}
               onMouseLeave={e => e.target.style.borderColor = 'rgba(255,255,255,0.25)'}>
               Login
