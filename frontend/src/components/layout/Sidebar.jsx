@@ -27,7 +27,7 @@ const navItems = [
 const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { farmer } = useUserStore();
+  const { farmer, logout } = useUserStore();
   const [collapsed, setCollapsed] = useState(false);
 
   const toggle = () => {
@@ -91,15 +91,36 @@ const Sidebar = () => {
 
       {/* Footer User */}
       <div className="sidebar-footer">
-        <div className="sidebar-user-avatar">
-          {(farmer?.name?.[0] || 'F').toUpperCase()}
-        </div>
-        {!collapsed && (
-          <div className="sidebar-user-info">
-            <span className="sidebar-user-name">{farmer?.name || 'Farmer'}</span>
-            <span className="sidebar-user-role">Farmer</span>
+        <button
+          type="button"
+          onClick={() => { logout(); navigate('/'); }}
+          title="Log out"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            width: '100%',
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            color: 'inherit',
+            font: 'inherit',
+            textAlign: 'left',
+          }}
+        >
+          <div className="sidebar-user-avatar">
+            {(farmer?.name?.[0] || 'F').toUpperCase()}
           </div>
-        )}
+          {!collapsed && (
+            <div className="sidebar-user-info" style={{ flex: 1, minWidth: 0 }}>
+              <span className="sidebar-user-name">{farmer?.name || 'Farmer'}</span>
+              <span className="sidebar-user-role" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <LogOut size={12} /> Log out
+              </span>
+            </div>
+          )}
+        </button>
       </div>
     </aside>
   );

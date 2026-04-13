@@ -13,11 +13,11 @@ const TopBar = ({
 }) => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useThemeStore();
-  const { resetOnboarding } = useUserStore();
+  const logout = useUserStore((s) => s.logout);
   const isDark = theme === 'dark';
 
   const handleLogout = () => {
-    resetOnboarding();
+    logout();
     navigate('/');
   };
 

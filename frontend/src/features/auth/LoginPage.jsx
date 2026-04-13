@@ -1,22 +1,29 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Leaf, Mail, Lock, LogIn, ArrowRight } from 'lucide-react';
+import { Leaf, Mail, Lock, ArrowRight } from 'lucide-react';
 import { useUserStore } from '../../stores/useUserStore';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
+  const login = useUserStore((s) => s.login);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError(null);
     setIsLoading(true);
-    // Simulate API delay, then just bypass and go to dashboard
-    setTimeout(() => {
+    try {
+      await login(email, password);
+      const { isOnboarded } = useUserStore.getState();
+      navigate(isOnboarded ? '/dashboard' : '/onboarding');
+    } catch (err) {
+      setError(err?.message || 'Login failed');
+    } finally {
       setIsLoading(false);
-      navigate('/dashboard');
-    }, 1000);
+    }
   };
 
   return (
@@ -48,6 +55,11 @@ export const LoginPage = () => {
 
         {/* Form Card */}
         <div style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', padding: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+          {error ? (
+            <div style={{ marginBottom: '16px', padding: '12px 14px', borderRadius: '12px', background: 'rgba(220,38,38,0.2)', border: '1px solid rgba(248,113,113,0.4)', color: '#fecaca', fontSize: '0.875rem' }}>
+              {error}
+            </div>
+          ) : null}
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
             {/* Email Field */}

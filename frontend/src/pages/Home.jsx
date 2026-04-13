@@ -27,9 +27,14 @@ const features = [
 
 const Home = () => {
   const navigate = useNavigate();
-  const { isOnboarded } = useUserStore();
+  const accessToken = useUserStore((s) => s.accessToken);
+  const isOnboarded = useUserStore((s) => s.isOnboarded);
 
-  const handleCta = () => navigate(isOnboarded ? '/dashboard' : '/signup');
+  const handleCta = () => {
+    if (accessToken && isOnboarded) navigate('/dashboard');
+    else if (accessToken && !isOnboarded) navigate('/onboarding');
+    else navigate('/signup');
+  };
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}>
@@ -103,7 +108,8 @@ const Home = () => {
           <button onClick={handleCta} style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '16px 36px', borderRadius: '50px', border: 'none', background: 'linear-gradient(135deg,#1A7A40,#2D9450)', color: '#fff', fontSize: '1.05rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 0 40px rgba(26,122,64,0.5)', transition: 'all 0.2s', letterSpacing: '-0.01em' }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 48px rgba(26,122,64,0.7)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 0 40px rgba(26,122,64,0.5)'; }}>
-            {isOnboarded ? 'Enter App' : 'Get Started'} <ArrowRight size={18} />
+            {accessToken && isOnboarded ? 'Enter App' : accessToken && !isOnboarded ? 'Continue setup' : 'Get Started'}{' '}
+            <ArrowRight size={18} />
           </button>
 
           {/* TRUST STRIP */}
@@ -165,7 +171,7 @@ const Home = () => {
           <button onClick={handleCta} style={{ padding: '14px 40px', borderRadius: '50px', border: 'none', background: 'linear-gradient(135deg,#1A7A40,#2D9450)', color: '#fff', fontSize: '1rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 0 30px rgba(26,122,64,0.4)', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
             onMouseLeave={e => e.currentTarget.style.transform = ''}>
-            {isOnboarded ? 'Go to Dashboard' : 'Shuru Karo — Bilkul Free Hai'}
+            {accessToken && isOnboarded ? 'Go to Dashboard' : accessToken && !isOnboarded ? 'Continue onboarding' : 'Shuru Karo — Bilkul Free Hai'}
           </button>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', marginTop: '16px' }}>© 2025 FasalSaathi. Powered by AI</p>
         </footer>

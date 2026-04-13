@@ -5,6 +5,7 @@ import { useUserStore } from '../../stores/useUserStore';
 
 export const SignupPage = () => {
   const navigate = useNavigate();
+  const register = useUserStore((s) => s.register);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -12,6 +13,7 @@ export const SignupPage = () => {
     password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleChange = (e) => {
     setFormData({
@@ -20,14 +22,23 @@ export const SignupPage = () => {
     });
   };
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
+    setError(null);
     setIsLoading(true);
-    // Simulate API delay, then just bypass and go to onboarding or dashboard
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+      });
       navigate('/onboarding');
-    }, 1000);
+    } catch (err) {
+      setError(err?.message || 'Could not create account');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -59,6 +70,11 @@ export const SignupPage = () => {
 
         {/* Form Card */}
         <div style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', padding: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+          {error ? (
+            <div style={{ marginBottom: '16px', padding: '12px 14px', borderRadius: '12px', background: 'rgba(220,38,38,0.2)', border: '1px solid rgba(248,113,113,0.4)', color: '#fecaca', fontSize: '0.875rem' }}>
+              {error}
+            </div>
+          ) : null}
           <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
             {/* Full Name */}

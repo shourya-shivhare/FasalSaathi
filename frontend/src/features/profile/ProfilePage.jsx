@@ -20,7 +20,7 @@ const StatItem = ({ icon: Icon, label, value, color }) => (
 );
 
 const ProfilePage = () => {
-  const { farmer } = useUserStore();
+  const { farmer, user } = useUserStore();
   const { fields, addField, setActiveField, activeFieldId } = useFieldStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [showFieldMap, setShowFieldMap] = useState(false);
@@ -63,11 +63,16 @@ const ProfilePage = () => {
             <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.15rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 6px' }}>
               {farmer?.name || 'Farmer'}
             </h2>
+            {user?.email ? (
+              <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem', margin: '0 0 8px', wordBreak: 'break-all' }}>
+                {user.email}
+              </p>
+            ) : null}
             <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.83rem', margin: '0 0 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
               <MapPin size={13} /> {farmer?.location || farmer?.village || 'Location not set'}
             </p>
             <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.83rem', margin: '0 0 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-              <Phone size={13} /> {farmer?.phone || '+91 XXXXX XXXXX'}
+              <Phone size={13} /> {farmer?.phone || '—'}
             </p>
             <button style={{ width: '100%', padding: '10px', borderRadius: '12px', border: '1.5px solid var(--color-accent-primary)', background: 'transparent', color: 'var(--color-accent-primary)', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               <Edit2 size={15} /> Edit Profile

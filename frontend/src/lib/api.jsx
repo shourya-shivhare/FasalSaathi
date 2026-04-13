@@ -3,18 +3,52 @@
 // Chat is handled by useChatStore directly.
 
 const AI_BASE = 'http://localhost:8001'; // ai-service direct (for detect fallback)
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+export const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 // ── helpers ────────────────────────────────────────────────────────────────
+
+function formatApiDetail(detail) {
+  if (detail == null) return '';
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((e) => (typeof e === 'object' && e?.msg ? e.msg : String(e))).join(', ');
+  }
+  return String(detail);
+}
 
 async function fetchJSON(url, options = {}) {
   const res = await fetch(url, options);
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || `HTTP ${res.status}`);
+    const err = await res.json().catch(() => ({}));
+    throw new Error(formatApiDetail(err.detail) || res.statusText || `HTTP ${res.status}`);
   }
   return res.json();
 }
+
+/** Login / register / current user — uses JSON bodies (not OAuth2 form). */
+export const authApi = {
+  async login(email, password) {
+    return fetchJSON(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+  },
+  async register({ name, email, password, phone }) {
+    const body = { name, email, password };
+    if (phone && phone.trim()) body.phone = phone.trim();
+    return fetchJSON(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  },
+  async getMe(accessToken) {
+    return fetchJSON(`${API_BASE}/users/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+};
 
 // ── Weather — Open-Meteo (free, no API key) ────────────────────────────────
 
@@ -104,7 +138,7 @@ export const api = {
   },
 
   // ── Pest alerts — enriched static data ─────────────────────────────────
-  async getPestAlerts(crop = 'Wheat', state = 'Delhi') {
+  async getPestAlerts(crop = 'Wheat', _state = 'Delhi') {
     const alerts = {
       Wheat: [
         { id: 'p1', pestName: 'Aphids (Maahu)', affectedCrop: 'Wheat', severity: 'Medium', preventionTip: 'Spray Imidacloprid 0.5ml/L water in early morning' },

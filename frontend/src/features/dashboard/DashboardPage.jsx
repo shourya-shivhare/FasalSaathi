@@ -42,7 +42,7 @@ const StatCard = ({ icon: Icon, label, value, sub }) => (
 
 const DashboardPage = () => {
   const navigate = useNavigate();
-  const { farmer, resetOnboarding } = useUserStore();
+  const { farmer, logout } = useUserStore();
   const { activeField, weather, soil, irrigation, hasFields, isLoading } = useFieldData();
 
   if (isLoading) {
@@ -197,7 +197,7 @@ const DashboardPage = () => {
       {import.meta.env.DEV && (
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '40px', paddingBottom: '16px' }}>
           <button
-            onClick={() => { resetOnboarding(); window.location.href = '/'; }}
+            onClick={() => { logout(); window.location.href = '/'; }}
             style={{
               padding: '6px 16px', background: 'rgba(220,38,38,0.8)',
               color: '#fff', borderRadius: '8px', border: 'none',
