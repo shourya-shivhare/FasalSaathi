@@ -99,18 +99,18 @@ const AddFieldForm = ({ onSubmit, onCancel }) => {
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/20 transition-colors"
             >
-              <Plus className="w-5 h-5 text-white" />
+              <Plus className="w-5 h-5 theme-text-on-accent" />
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg leading-tight">Add New Field</h2>
-              <p className="text-white/70 text-xs mt-0.5">Enter your field details below</p>
+              <h2 className="theme-text-on-accent font-bold text-lg leading-tight">Add New Field</h2>
+              <p className="theme-text-on-accent opacity-70 text-xs mt-0.5">Enter your field details below</p>
             </div>
           </div>
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all"
+              className="p-1.5 rounded-lg theme-text-on-accent opacity-60 hover:opacity-100 hover:bg-white/10 transition-all"
             >
               <X className="w-5 h-5" />
             </button>
@@ -209,7 +209,7 @@ const AddFieldForm = ({ onSubmit, onCancel }) => {
               className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] ${
                 isGettingLocation 
                   ? 'theme-bg-secondary theme-text-accent-primary border theme-border' 
-                  : 'theme-bg-accent-primary text-white shadow-lg shadow-theme-accent-primary/30'
+                  : 'theme-bg-accent-primary theme-text-on-accent shadow-lg shadow-theme-accent-primary/30'
               }`}
             >
               {isGettingLocation ? (
@@ -263,7 +263,7 @@ const AddFieldForm = ({ onSubmit, onCancel }) => {
           </button>
           <button
             type="submit"
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white theme-bg-accent-primary transition-all active:scale-[0.98] shadow-lg shadow-theme-accent-primary/25"
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold theme-text-on-accent theme-bg-accent-primary transition-all active:scale-[0.98] shadow-lg shadow-theme-accent-primary/25"
           >
             <Plus className="w-4 h-4" />
             Add Field

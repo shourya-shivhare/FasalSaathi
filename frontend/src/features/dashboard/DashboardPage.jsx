@@ -13,7 +13,7 @@ import { mockAlerts } from '../../lib/mockData.jsx';
 
 const StatCard = ({ icon: Icon, label, value, sub }) => (
   <div style={{
-    background: '#fff',
+    background: 'var(--color-surface)',
     borderRadius: '16px',
     padding: '20px 24px',
     boxShadow: '0 1px 8px rgba(26,122,64,0.07)',
@@ -79,7 +79,7 @@ const DashboardPage = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: '8px',
-            background: '#fff', borderRadius: '12px', padding: '8px 16px',
+            background: 'var(--color-surface)', borderRadius: '12px', padding: '8px 16px',
             border: '1px solid var(--color-border)',
             boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
             fontSize: '0.85rem', color: 'var(--color-text-secondary)',
@@ -89,7 +89,7 @@ const DashboardPage = () => {
           </div>
           <button style={{
             width: '40px', height: '40px', borderRadius: '12px',
-            background: '#fff', border: '1px solid var(--color-border)',
+            background: 'var(--color-surface)', border: '1px solid var(--color-border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
           }}>
@@ -185,7 +185,7 @@ const DashboardPage = () => {
       {!hasFields && (
         <div style={{
           textAlign: 'center', padding: '48px', borderRadius: '16px',
-          border: '2px dashed var(--color-border)', background: '#fff', marginTop: '16px',
+          border: '2px dashed var(--color-border)', background: 'var(--color-surface)', marginTop: '16px',
         }}>
           <div style={{ fontSize: '48px', marginBottom: '12px' }}>🌱</div>
           <h3 style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>No fields added yet</h3>

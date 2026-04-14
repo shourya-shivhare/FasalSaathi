@@ -108,10 +108,10 @@ const ChatInput = ({ onSendMessage, disabled = false, isListening = false, onTog
               animate={{ scale: 1, rotate: 0 }}
               exit={{ scale: 0, rotate: 30 }}
               transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              className="w-11 h-11 flex items-center justify-center rounded-full text-white shadow-md active:scale-95"
+              className="w-11 h-11 flex items-center justify-center rounded-full theme-text-on-accent shadow-md active:scale-95"
               style={{ background: 'var(--color-accent-primary)' }}
             >
-              <Send className="w-5 h-5 text-white" />
+              <Send className="w-5 h-5 theme-text-on-accent" />
             </motion.button>
           ) : (
             <motion.button

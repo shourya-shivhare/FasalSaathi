@@ -21,11 +21,11 @@ const Button = React.forwardRef(
 
     const variants = {
       primary:
-        'text-white focus:ring-offset-theme-bg-primary transition-all duration-200',
+        'theme-text-on-accent focus:ring-offset-theme-bg-primary transition-all duration-200',
       secondary:
         'theme-bg-surface-hover theme-text-primary hover:opacity-80 transition-all duration-200',
       danger:
-        'theme-bg-danger text-white hover:opacity-90 transition-all duration-200',
+        'theme-bg-danger theme-text-on-danger hover:opacity-90 transition-all duration-200',
       ghost:
         'bg-transparent theme-text-primary hover:theme-bg-surface-hover transition-all duration-200',
       outline:
