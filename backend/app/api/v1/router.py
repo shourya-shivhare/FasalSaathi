@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, users, crops, weather, chat, detect, schemes
+from app.api.v1.endpoints import auth, users, crops, weather, chat, detect, schemes, agents
 
 api_router = APIRouter()
 
@@ -10,3 +10,5 @@ api_router.include_router(weather.router, prefix="/weather", tags=["Weather"])
 api_router.include_router(chat.router,    prefix="/chat",    tags=["Chat / AI"])
 api_router.include_router(detect.router,  prefix="/detect",  tags=["Pest Detection"])
 api_router.include_router(schemes.router, prefix="/schemes", tags=["Schemes"])
+api_router.include_router(agents.router,  prefix="/agents",  tags=["AI Agents"])
+

@@ -7,6 +7,7 @@ import {
   MessageCircle,
   TrendingUp,
   BookOpen,
+  Landmark,
   User,
   Leaf,
   ChevronLeft,
@@ -20,6 +21,7 @@ const navItems = [
   { path: '/detect',     label: 'Scan Crop',      icon: ScanLine },
   { path: '/chat',      label: 'AI Advisory',    icon: MessageCircle },
   { path: '/market',    label: 'Market Prices',  icon: TrendingUp },
+  { path: '/schemes',   label: 'Gov Schemes',    icon: Landmark },
   { path: '/advisory',  label: 'Advisory',       icon: BookOpen },
   { path: '/profile',   label: 'Profile',        icon: User },
 ];
