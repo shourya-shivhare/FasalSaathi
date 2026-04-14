@@ -58,11 +58,21 @@ const ProfilePage = () => {
               </p>
             )}
             <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.83rem', margin: '0 0 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-              <MapPin size={13} /> {farmer?.location || farmer?.village || 'Location not set'}
+              <MapPin size={13} /> {farmer?.state ? `${farmer.district || farmer.village}, ${farmer.state}` : 'Location not set'}
             </p>
             <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.83rem', margin: '0 0 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
               <Phone size={13} /> {user?.phone || farmer?.phone || '—'}
             </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+               <div style={{ background: 'var(--color-bg-primary)', padding: '8px', borderRadius: '10px' }}>
+                 <div style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Age</div>
+                 <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{farmer?.age || '—'}</div>
+               </div>
+               <div style={{ background: 'var(--color-bg-primary)', padding: '8px', borderRadius: '10px' }}>
+                 <div style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Gender</div>
+                 <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{farmer?.gender || '—'}</div>
+               </div>
+            </div>
             <button style={{ width: '100%', padding: '10px', borderRadius: '12px', border: '1.5px solid var(--color-accent-primary)', background: 'transparent', color: 'var(--color-accent-primary)', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               <Edit2 size={15} /> Edit Profile
             </button>
@@ -86,10 +96,10 @@ const ProfilePage = () => {
           <div style={{ background: 'var(--color-surface)', borderRadius: '20px', border: '1px solid var(--color-border)', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
             <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 14px' }}>🌾 Farm Details</h3>
             {[
-              { label: 'Farm Size', value: `${fields.reduce((s, f) => s + (parseFloat(f.area) || 0), 0) || 5} Acres` },
-              { label: 'Primary Crops', value: fields.length > 0 ? fields.map(f => f.crop).slice(0, 2).join(', ') : 'Wheat, Rice' },
-              { label: 'Soil Type', value: fields[0]?.soilType || 'Loamy' },
-              { label: 'Total Fields', value: `${fields.length} field${fields.length !== 1 ? 's' : ''}` },
+              { label: 'Total Land', value: `${farmer?.land_size_acres || fields.reduce((s, f) => s + (parseFloat(f.area) || 0), 0) || 0} Acres` },
+              { label: 'Primary Crops', value: farmer?.crops_grown?.length > 0 ? farmer.crops_grown.join(', ') : (fields.length > 0 ? fields.map(f => f.crop).slice(0, 2).join(', ') : 'None') },
+              { label: 'Category', value: farmer?.category || 'Marginal' },
+              { label: 'Annual Income', value: farmer?.annual_income ? `₹${farmer.annual_income}` : '—' },
             ].map(item => (
               <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--color-border)', fontSize: '0.83rem' }}>
                 <span style={{ color: 'var(--color-text-secondary)' }}>{item.label}</span>

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { authApi } from '../lib/api.jsx';
+import { authApi, api } from '../lib/api.jsx';
 
 function mergeFarmerFromUser(prev, user) {
   if (!user) return prev;
@@ -9,6 +9,14 @@ function mergeFarmerFromUser(prev, user) {
     name: user.name ?? prev.name,
     email: user.email ?? prev.email,
     phone: user.phone ?? prev.phone,
+    state: user.state ?? prev.state,
+    district: user.district ?? prev.district,
+    age: user.age ?? prev.age,
+    gender: user.gender ?? prev.gender,
+    land_size_acres: user.land_size_acres ?? prev.land_size_acres,
+    crops_grown: user.crops_grown ?? prev.crops_grown,
+    category: user.category ?? prev.category,
+    annual_income: user.annual_income ?? prev.annual_income,
   };
 }
 
@@ -19,11 +27,18 @@ export const useUserStore = create(
       user: null,
       farmer: {
         name: '',
-        village: '',
+        village: '', // maps to district or town in UI
         state: '',
+        district: '',
         preferredLang: 'en',
         email: '',
         phone: '',
+        age: null,
+        gender: '',
+        land_size_acres: null,
+        crops_grown: [],
+        category: '',
+        annual_income: null,
       },
       isOnboarded: false,
       language: 'en',
@@ -83,24 +98,56 @@ export const useUserStore = create(
         });
       },
 
-      completeOnboarding: (data) => {
-        set({
-          farmer: {
-            ...get().farmer,
-            name: data.name || get().farmer.name,
-            village: data.village || '',
-            state: data.state || '',
-            preferredLang: data.language || 'en',
-          },
-          isOnboarded: true,
-          language: data.language || 'en',
-        });
+      completeOnboarding: async (data) => {
+        const token = get().accessToken;
+        // Map UI fields to backend fields
+        const profileUpdates = {
+          state: data.state,
+          district: data.village || data.district,
+          land_size_acres: parseFloat(data.land_size_acres) || 0,
+          crops_grown: data.crops_grown || [],
+          age: parseInt(data.age) || null,
+          gender: data.gender || '',
+        };
+
+        if (token) {
+          try {
+            const updatedUser = await api.updateUserProfile(token, profileUpdates);
+            set({
+              user: updatedUser,
+              farmer: mergeFarmerFromUser(get().farmer, updatedUser),
+              isOnboarded: true,
+              language: data.language || get().language,
+            });
+          } catch (err) {
+            console.error('Failed to sync profile to backend:', err);
+            // Still mark as onboarded locally to allow access
+            set({ isOnboarded: true });
+          }
+        } else {
+          set({ isOnboarded: true });
+        }
       },
 
-      updateFarmerProfile: (updates) => {
-        set((state) => ({
-          farmer: { ...state.farmer, ...updates },
-        }));
+      updateFarmerProfile: async (updates) => {
+        const token = get().accessToken;
+        if (token) {
+          try {
+            const updatedUser = await api.updateUserProfile(token, updates);
+            set({
+              user: updatedUser,
+              farmer: mergeFarmerFromUser(get().farmer, updatedUser),
+            });
+            return updatedUser;
+          } catch (err) {
+            console.error('Update failed:', err);
+            throw err;
+          }
+        } else {
+          set((state) => ({
+            farmer: { ...state.farmer, ...updates },
+          }));
+        }
       },
 
       resetOnboarding: () => {
@@ -110,9 +157,16 @@ export const useUserStore = create(
             name: '',
             village: '',
             state: '',
+            district: '',
             preferredLang: 'en',
             email: '',
             phone: '',
+            age: null,
+            gender: '',
+            land_size_acres: null,
+            crops_grown: [],
+            category: '',
+            annual_income: null,
           },
         });
       },
@@ -126,9 +180,16 @@ export const useUserStore = create(
             name: '',
             village: '',
             state: '',
+            district: '',
             preferredLang: 'en',
             email: '',
             phone: '',
+            age: null,
+            gender: '',
+            land_size_acres: null,
+            crops_grown: [],
+            category: '',
+            annual_income: null,
           },
         });
       },

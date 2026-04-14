@@ -36,10 +36,10 @@ const StepIndicator = ({ current, total }) => (
         </div>
         <div>
           <div style={{ fontWeight: i === current ? 700 : 500, color: i === current ? '#fff' : i < current ? '#86EFAC' : 'rgba(255,255,255,0.5)', fontSize: '0.875rem' }}>
-            {['Language', 'Location', 'Crop Setup'][i]}
+            {['Language', 'Personal & Location', 'Farm Setup'][i]}
           </div>
           <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginTop: '1px' }}>
-            {['Choose your language', 'Set farm location', 'Add your crops'][i]}
+            {['Choose your language', 'Personal & Area details', 'Add your crops'][i]}
           </div>
         </div>
       </div>
@@ -52,15 +52,36 @@ const OnboardingFlow = ({ onComplete }) => {
   const [lang, setLang] = useState('hi');
   const [location, setLocation] = useState('');
   const [state, setState] = useState('');
+  const [district, setDistrict] = useState('');
   const [selectedCrops, setSelectedCrops] = useState([]);
   const [fieldSize, setFieldSize] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
   const { completeOnboarding } = useUserStore();
   const { addField } = useFieldStore();
 
-  const handleComplete = () => {
-    completeOnboarding({ name: 'Farmer', village: location || 'Unknown', state: state || 'Unknown', language: lang });
+  const handleComplete = async () => {
+    await completeOnboarding({ 
+      name: 'Farmer', 
+      village: location, 
+      state: state, 
+      district: district || location,
+      language: lang,
+      age: age,
+      gender: gender,
+      land_size_acres: fieldSize,
+      crops_grown: selectedCrops
+    });
+    
     if (selectedCrops.length > 0 && fieldSize) {
-      addField({ name: 'Main Field', crop: selectedCrops[0], area: fieldSize, areaUnit: 'acres', soilType: 'Loamy', location: { village: location, district: '', state } });
+      addField({ 
+        name: 'Main Field', 
+        crop: selectedCrops[0], 
+        area: fieldSize, 
+        areaUnit: 'acres', 
+        soilType: 'Loamy', 
+        location: { village: location, district: district || location, state } 
+      });
     }
     onComplete();
   };
@@ -135,31 +156,50 @@ const OnboardingFlow = ({ onComplete }) => {
             </>
           )}
 
-          {/* STEP 1: LOCATION */}
+          {/* STEP 1: PERSONAL & LOCATION */}
           {step === 1 && (
             <>
-              <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.75rem', fontWeight: 800, color: '#1A2B1A', margin: '0 0 6px' }}>Set Farm Location</h2>
-              <p style={{ color: '#4A5568', margin: '0 0 28px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MapPin size={15} /> Apne kheton ki jagah batayiye
+              <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.75rem', fontWeight: 800, color: '#1A2B1A', margin: '0 0 6px' }}>Personal & Location</h2>
+              <p style={{ color: '#4A5568', margin: '0 0 24px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MapPin size={15} /> Apne baare mein aur jagah batayiye
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '32px' }}>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '20px' }}>
                 <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#4A5568', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Village / Town</label>
-                  <input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Unnao" style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #E2E8E0', background: '#fff', fontSize: '0.9rem', color: '#1A2B1A', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s' }}
-                    onFocus={e => e.target.style.borderColor = '#1A7A40'} onBlur={e => e.target.style.borderColor = '#E2E8E0'} />
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4A5568', display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>Age</label>
+                  <input type="number" value={age} onChange={e => setAge(e.target.value)} placeholder="e.g. 42" style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #E2E8E0', background: '#fff', fontSize: '0.9rem', color: '#1A2B1A', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#4A5568', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>State</label>
-                  <select value={state} onChange={e => setState(e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #E2E8E0', background: '#fff', fontSize: '0.9rem', color: '#1A2B1A', outline: 'none', appearance: 'none', cursor: 'pointer' }}>
-                    <option value="">Select State...</option>
-                    {['Uttar Pradesh', 'Punjab', 'Haryana', 'Maharashtra', 'Gujarat', 'Rajasthan', 'Madhya Pradesh', 'Bihar', 'West Bengal', 'Karnataka'].map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4A5568', display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>Gender</label>
+                  <select value={gender} onChange={e => setGender(e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #E2E8E0', background: '#fff', fontSize: '0.9rem', color: '#1A2B1A', outline: 'none', appearance: 'none', cursor: 'pointer' }}>
+                    <option value="">Select...</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
-                <button style={{ padding: '13px', borderRadius: '12px', border: '1.5px dashed #1A7A40', background: '#D4EDDA', color: '#1A7A40', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <MapPin size={16} /> Use Current GPS Location
-                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '32px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4A5568', display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>State</label>
+                    <select value={state} onChange={e => setState(e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #E2E8E0', background: '#fff', fontSize: '0.9rem', color: '#1A2B1A', outline: 'none', appearance: 'none', cursor: 'pointer' }}>
+                      <option value="">Select State...</option>
+                      {['Uttar Pradesh', 'Punjab', 'Haryana', 'Maharashtra', 'Gujarat', 'Rajasthan', 'Madhya Pradesh', 'Bihar', 'West Bengal', 'Karnataka'].map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4A5568', display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>District</label>
+                    <input value={district} onChange={e => setDistrict(e.target.value)} placeholder="e.g. Unnao" style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #E2E8E0', background: '#fff', fontSize: '0.9rem', color: '#1A2B1A', outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4A5568', display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>Village / Town</label>
+                  <input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Safipur" style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #E2E8E0', background: '#fff', fontSize: '0.9rem', color: '#1A2B1A', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
               </div>
             </>
           )}

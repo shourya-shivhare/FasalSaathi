@@ -63,22 +63,47 @@ const AddFieldForm = ({ onSubmit, onCancel }) => {
 
   const handleGetLocation = async () => {
     setIsGettingLocation(true);
-    try {
-      setTimeout(() => {
-        const mockLocation = {
-          lat: 28.6139,
-          lng: 77.209,
-          village: 'Narela',
-          district: 'Delhi',
-          state: 'Delhi',
-        };
-        setLocation(mockLocation);
-        setValue('location', mockLocation);
-        setIsGettingLocation(false);
-      }, 2000);
-    } catch {
+    if (!navigator.geolocation) {
       setIsGettingLocation(false);
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude: lat, longitude: lng } = position.coords;
+        const GOOGLE_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+        try {
+          const response = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_KEY}`
+          );
+          const data = await response.json();
+
+          if (data.status === 'OK') {
+            const results = data.results[0].address_components;
+            const getLocationComponent = (type) => 
+              results.find(c => c.types.includes(type))?.long_name || '';
+
+            const village = getLocationComponent('locality') || getLocationComponent('sublocality');
+            const district = getLocationComponent('administrative_area_level_2');
+            const state = getLocationComponent('administrative_area_level_1');
+
+            const locationData = { lat, lng, village, district, state };
+            setLocation(locationData);
+            setValue('location', locationData);
+            setValue('village', village); // Automatically fill manual input too
+          }
+        } catch (error) {
+          console.error('Geocoding error:', error);
+        } finally {
+          setIsGettingLocation(false);
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        setIsGettingLocation(false);
+      }
+    );
   };
 
   const onFormSubmit = (data) => {

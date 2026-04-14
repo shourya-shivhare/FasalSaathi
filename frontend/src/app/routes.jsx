@@ -32,6 +32,11 @@ export const routes = [
     protected: true,
   },
   {
+    path: '/detect',
+    component: () => null, // Placeholder since ScanPage isn't imported here
+    protected: true,
+  },
+  {
     path: '/onboarding',
     component: OnboardingFlow,
     protected: false,

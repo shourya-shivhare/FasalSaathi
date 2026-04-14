@@ -20,9 +20,9 @@ class AdvisorResponse(BaseModel):
 async def crop_advisor(payload: AdvisorRequest):
     initial_state = {
         "messages": [HumanMessage(content=payload.query)],
-        "query_type": "",
-        "weather_info": "",
-        "market_info": "",
+        "next_agent": "",
+        "worker_context": "",
+        "location": "Delhi",
         "final_answer": "",
     }
     result = crop_advisor_graph.invoke(initial_state)

@@ -26,21 +26,45 @@ export const useFieldStore = create((set, get) => ({
     });
   },
 
-  fetchWeather: async (coords) => {
-    // Simulate API call
+  fetchWeather: async (location) => {
+    const API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
+    if (!API_KEY) return;
+
     set({ isWeatherLoading: true });
     
-    setTimeout(() => {
-      const updatedWeather = {
-        ...mockWeather,
-        temp: Math.round(25 + Math.random() * 15),
-        humidity: Math.round(50 + Math.random() * 30),
-        windSpeed: Math.round(5 + Math.random() * 20),
-        lastUpdated: new Date(),
-      };
+    try {
+      let url = '';
+      if (location.lat && location.lng) {
+        url = `https://api.openweathermap.org/data/2.5/weather?lat=${location.lat}&lon=${location.lng}&appid=${API_KEY}&units=metric`;
+      } else {
+        const query = location.village || location.name || 'Delhi';
+        url = `https://api.openweathermap.org/data/2.5/weather?q=${query}&appid=${API_KEY}&units=metric`;
+      }
 
-      set({ weather: updatedWeather, isWeatherLoading: false });
-    }, 1000);
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (response.ok) {
+        const riskLevel = data.main.temp > 35 ? 'HIGH' : data.main.temp > 30 ? 'MODERATE' : 'LOW';
+        
+        const updatedWeather = {
+          temp: Math.round(data.main.temp),
+          condition: data.weather[0].main,
+          humidity: data.main.humidity,
+          windSpeed: Math.round(data.wind.speed * 3.6), // Convert m/s to km/h
+          riskLevel: riskLevel,
+          lastUpdated: new Date(),
+        };
+
+        set({ weather: updatedWeather, isWeatherLoading: false });
+      } else {
+        console.error('Weather API Error:', data.message);
+        set({ isWeatherLoading: false });
+      }
+    } catch (error) {
+      console.error('Failed to fetch weather:', error);
+      set({ isWeatherLoading: false });
+    }
   },
 
   addField: (fieldData) => {

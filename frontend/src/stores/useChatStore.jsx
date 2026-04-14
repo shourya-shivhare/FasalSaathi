@@ -4,6 +4,16 @@ import { create } from 'zustand';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
+// ── helpers ─────────────────────────────────────────────────────────────────
+function getAccessToken() {
+  try {
+    const raw = localStorage.getItem('fasalsaathi-user');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.state?.accessToken || null;
+  } catch { return null; }
+}
+
 // ── session ID persisted across page refreshes ─────────────────────────────
 function getOrCreateSessionId() {
   let sid = localStorage.getItem('fasalsaathi_session_id');
@@ -33,9 +43,13 @@ export const useChatStore = create((set, get) => ({
       // Build the messages array for the API — all messages including the new one
       const apiMessages = messages.map((m) => ({ role: m.role, content: m.content }));
 
+      const token = getAccessToken();
       const res = await fetch(`${API_BASE}/chat/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           messages: apiMessages,
           session_id: sessionId,
@@ -94,9 +108,13 @@ export const useChatStore = create((set, get) => ({
       const { messages, sessionId } = get();
       const apiMessages = messages.map((m) => ({ role: m.role, content: m.content }));
 
+      const token = getAccessToken();
       const res = await fetch(`${API_BASE}/chat/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           messages: apiMessages,
           session_id: sessionId,

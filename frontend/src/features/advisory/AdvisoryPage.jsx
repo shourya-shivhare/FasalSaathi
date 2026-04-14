@@ -92,7 +92,7 @@ const AdvisoryPage = () => {
             </div>
 
             {/* Scan CTA Banner */}
-            <div onClick={() => navigate('/scan')} style={{ background: 'linear-gradient(135deg,#1A7A40,#2D8F55)', borderRadius: '16px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', marginBottom: '14px', transition: 'transform 0.15s' }}
+            <div onClick={() => navigate('/detect')} style={{ background: 'linear-gradient(135deg,#1A7A40,#2D8F55)', borderRadius: '16px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', marginBottom: '14px', transition: 'transform 0.15s' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
               onMouseLeave={e => e.currentTarget.style.transform = ''}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -194,7 +194,7 @@ const AdvisoryPage = () => {
               Quick Actions
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button onClick={() => navigate('/scan')} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: 'none', background: 'var(--color-accent-primary)', color: '#fff', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <button onClick={() => navigate('/detect')} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: 'none', background: 'var(--color-accent-primary)', color: '#fff', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <ScanLine size={16} /> Scan for Pests
               </button>
               <button onClick={() => navigate('/chat')} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1.5px solid var(--color-accent-primary)', background: 'transparent', color: 'var(--color-accent-primary)', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>

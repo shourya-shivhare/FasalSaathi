@@ -33,7 +33,7 @@ const ActionCard = ({ actionCard }) => {
           size="sm" 
           icon={Camera} 
           fullWidth
-          onClick={() => navigate('/scan')}
+          onClick={() => navigate('/detect')}
         >
           Open Camera & Scan
         </Button>
