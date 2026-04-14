@@ -3,6 +3,7 @@ import { ChatPage } from '../features/chat/ChatPage';
 import { ProfilePage } from '../features/profile/ProfilePage';
 import { MarketPage } from '../features/market/MarketPage';
 import { AdvisoryPage } from '../features/advisory/AdvisoryPage';
+import { SchemesPage } from '../features/schemes/SchemesPage';
 import { OnboardingFlow } from '../features/onboarding/OnboardingFlow';
 
 export const routes = [
@@ -32,8 +33,13 @@ export const routes = [
     protected: true,
   },
   {
+    path: '/schemes',
+    component: SchemesPage,
+    protected: true,
+  },
+  {
     path: '/detect',
-    component: () => null, // Placeholder since ScanPage isn't imported here
+    component: () => null,
     protected: true,
   },
   {

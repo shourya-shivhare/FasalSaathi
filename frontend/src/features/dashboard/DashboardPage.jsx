@@ -106,55 +106,89 @@ const DashboardPage = () => {
         <StatCard icon={TrendingUp} label="Market Index" value="+2.4%" sub="↑ Wheat up today" />
       </div>
 
-      {/* Scan CTA */}
-      <div
-        onClick={() => navigate('/detect')}
-        style={{
-          background: 'linear-gradient(135deg, #1A7A40, #2D8F55)',
-          borderRadius: '16px',
-          padding: '20px 28px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'pointer',
-          marginBottom: '24px',
-          boxShadow: '0 4px 20px rgba(26,122,64,0.25)',
-          transition: 'transform 0.15s, box-shadow 0.15s',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 8px 28px rgba(26,122,64,0.35)';
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.transform = '';
-          e.currentTarget.style.boxShadow = '0 4px 20px rgba(26,122,64,0.25)';
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{
-            width: '48px', height: '48px', borderRadius: '12px',
-            background: 'rgba(255,255,255,0.2)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Camera size={24} color="#fff" />
-          </div>
-          <div>
-            <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1rem', fontWeight: 700, color: '#fff' }}>
-              Scan Your Crop
+      {/* Scan & Schemes CTAs */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+        <div
+          onClick={() => navigate('/detect')}
+          style={{
+            background: 'linear-gradient(135deg, #1A7A40, #2D8F55)',
+            borderRadius: '16px',
+            padding: '20px 28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            boxShadow: '0 4px 20px rgba(26,122,64,0.25)',
+            transition: 'transform 0.15s, box-shadow 0.15s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 8px 28px rgba(26,122,64,0.35)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = '';
+            e.currentTarget.style.boxShadow = '0 4px 20px rgba(26,122,64,0.25)';
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '12px',
+              background: 'rgba(255,255,255,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Camera size={24} color="#fff" />
             </div>
-            <div style={{ fontSize: '0.83rem', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
-              Upload a photo for instant pest detection
+            <div>
+              <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1rem', fontWeight: 700, color: '#fff' }}>
+                Scan Your Crop
+              </div>
+              <div style={{ fontSize: '0.83rem', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
+                Instant pest detection
+              </div>
             </div>
           </div>
         </div>
-        <button style={{
-          background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.4)',
-          borderRadius: '20px', padding: '8px 20px', color: '#fff',
-          fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
-          backdropFilter: 'blur(4px)', whiteSpace: 'nowrap',
-        }}>
-          Scan Now →
-        </button>
+
+        <div
+          onClick={() => navigate('/schemes')}
+          style={{
+            background: 'linear-gradient(135deg, #0f766e, #14b8a6)',
+            borderRadius: '16px',
+            padding: '20px 28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            boxShadow: '0 4px 20px rgba(15,118,110,0.25)',
+            transition: 'transform 0.15s, box-shadow 0.15s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 8px 28px rgba(15,118,110,0.35)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = '';
+            e.currentTarget.style.boxShadow = '0 4px 20px rgba(15,118,110,0.25)';
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '12px',
+              background: 'rgba(255,255,255,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Leaf size={24} color="#fff" />
+            </div>
+            <div>
+              <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1rem', fontWeight: 700, color: '#fff' }}>
+                Gov Schemes
+              </div>
+              <div style={{ fontSize: '0.83rem', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
+                Find eligible schemes
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Two-column: Weather + Irrigation */}

@@ -190,6 +190,45 @@ export const api = {
       return await fetchJSON(`${AI_BASE}/detect`, { method: 'POST', body: formData });
     }
   },
+
+  // ── AI Agents ──────────────────────────────────────────────────────────
+
+  /** Get AI-powered crop recommendations */
+  async getCropRecommendation(data, accessToken) {
+    return fetchJSON(`${API_BASE}/agents/crop-recommendation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify(data),
+    });
+  },
+
+  /** Get government scheme recommendations */
+  async getSchemeRecommendation(data, accessToken) {
+    return fetchJSON(`${API_BASE}/agents/scheme-recommendation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify(data),
+    });
+  },
+
+  /** Run the full agent pipeline (pest → crop → schemes) */
+  async getFullAnalysis(data, accessToken) {
+    return fetchJSON(`${API_BASE}/agents/full-analysis`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 export default api;
+
