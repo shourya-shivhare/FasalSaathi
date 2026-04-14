@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.api import deps
 from app.models.user import User
 from app.schemas.user import User as UserSchema, UserUpdate
+from app.core.security import get_password_hash
 from app.api.deps import get_db
 
 router = APIRouter()
@@ -21,8 +22,7 @@ def update_user_me(
     """Update own user information."""
     update_data = user_in.model_dump(exclude_unset=True)
     if "password" in update_data:
-        # TODO: use hash_password helper from core
-        current_user.hashed_password = update_data["password"]
+        current_user.hashed_password = get_password_hash(update_data["password"])
         del update_data["password"]
     
     for field, value in update_data.items():

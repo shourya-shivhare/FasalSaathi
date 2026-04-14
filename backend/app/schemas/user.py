@@ -24,9 +24,22 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
-# Properties to receive via API on update
-class UserUpdate(UserBase):
+# Properties to receive via API on update — all optional for partial PATCHes
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    name: Optional[str] = None
+    phone: Optional[str] = None
     password: Optional[str] = None
+
+    # Farmer profile fields
+    state: Optional[str] = None
+    district: Optional[str] = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    land_size_acres: Optional[float] = None
+    crops_grown: Optional[List[str]] = None
+    category: Optional[str] = None
+    annual_income: Optional[float] = None
 
 class UserInDBBase(UserBase):
     id: int
