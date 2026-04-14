@@ -2,8 +2,8 @@ import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { ChatPage } from '../features/chat/ChatPage';
 import { ProfilePage } from '../features/profile/ProfilePage';
 import { MarketPage } from '../features/market/MarketPage';
-import { AdvisoryPage } from '../features/advisory/AdvisoryPage';
 import { SchemesPage } from '../features/schemes/SchemesPage';
+import { CropSuggestionPage } from '../features/crop-suggestion/CropSuggestionPage';
 import { OnboardingFlow } from '../features/onboarding/OnboardingFlow';
 
 export const routes = [
@@ -27,14 +27,15 @@ export const routes = [
     component: MarketPage,
     protected: true,
   },
-  {
-    path: '/advisory',
-    component: AdvisoryPage,
-    protected: true,
-  },
+
   {
     path: '/schemes',
     component: SchemesPage,
+    protected: true,
+  },
+  {
+    path: '/crop-suggestion',
+    component: CropSuggestionPage,
     protected: true,
   },
   {

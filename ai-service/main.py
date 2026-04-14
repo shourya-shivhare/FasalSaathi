@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.routers.chat import router as chat_router
 from app.routers.crop_advisor import router as crop_advisor_router
 from app.routers.orchestrator_router import router as orchestrator_router
+from app.routers.detection import router as detection_router
 
 app = FastAPI(
     title="FasalSaathi AI Service",
@@ -25,6 +26,7 @@ app.add_middleware(
 app.include_router(chat_router, prefix="/api/chat", tags=["Chat"])
 app.include_router(crop_advisor_router, prefix="/api/crop-advisor", tags=["Crop Advisor"])
 app.include_router(orchestrator_router, prefix="/api/v1/agents", tags=["Agents & Orchestrator"])
+app.include_router(detection_router, prefix="/detect", tags=["Pest Detection"])
 
 
 

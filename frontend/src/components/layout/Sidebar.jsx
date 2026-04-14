@@ -6,8 +6,8 @@ import {
   History,
   MessageCircle,
   TrendingUp,
-  BookOpen,
   Landmark,
+  Sprout,
   User,
   Leaf,
   ChevronLeft,
@@ -22,7 +22,7 @@ const navItems = [
   { path: '/chat',      label: 'AI Advisory',    icon: MessageCircle },
   { path: '/market',    label: 'Market Prices',  icon: TrendingUp },
   { path: '/schemes',   label: 'Gov Schemes',    icon: Landmark },
-  { path: '/advisory',  label: 'Advisory',       icon: BookOpen },
+  { path: '/crop-suggestion', label: 'Crop Suggest', icon: Sprout },
   { path: '/profile',   label: 'Profile',        icon: User },
 ];
 
