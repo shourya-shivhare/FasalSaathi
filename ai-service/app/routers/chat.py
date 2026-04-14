@@ -39,6 +39,7 @@ class ChatRequest(BaseModel):
     messages: List[Message]
     session_id: str | None = None
     context: Dict[str, Any] | None = None
+    analysis_context: Dict[str, Any] | None = None
 
 
 class ChatResponse(BaseModel):
@@ -81,6 +82,7 @@ async def chat(payload: ChatRequest):
         "worker_context": "",
         "location": location,
         "final_answer": "",
+        "analysis_context": payload.analysis_context or {},
     }
 
     try:

@@ -35,6 +35,7 @@ class AdvisorState(TypedDict):
     worker_context: str      # Collected info from workers
     location: str
     final_answer: str
+    analysis_context: dict   # Orchestrator pipeline output (crops, schemes, summary)
 
 
 # ── Nodes ─────────────────────────────────────────────────────────────────────
@@ -123,17 +124,87 @@ def pest_worker(state: AdvisorState) -> AdvisorState:
     }
 
 
+def _build_analysis_context_text(state: AdvisorState) -> str:
+    """Extract structured context from analysis_context for the LLM prompt."""
+    ctx = state.get("analysis_context", {}) or {}
+    parts = []
+
+    # Extract crop recommendations
+    crops_data = ctx.get("crops")
+    if crops_data:
+        rec_crops = crops_data.get("recommended_crops", [])
+        if rec_crops:
+            crop_names = [c.get("crop_name", "") for c in rec_crops if c.get("crop_name")]
+            if crop_names:
+                parts.append(f"Recommended crops: {', '.join(crop_names)}")
+            # Include reasoning if present
+            reasoning = crops_data.get("reasoning_summary", "")
+            if reasoning:
+                parts.append(f"Crop reasoning: {reasoning[:200]}")
+
+    # Extract matched schemes
+    schemes_data = ctx.get("schemes")
+    if schemes_data:
+        matched = schemes_data.get("matched_schemes", [])
+        if matched:
+            scheme_names = [s.get("scheme_name", "") for s in matched[:5] if s.get("scheme_name")]
+            if scheme_names:
+                parts.append(f"Eligible government schemes: {', '.join(scheme_names)}")
+
+    # Include pipeline summary if provided
+    summary = ctx.get("summary", "")
+    if summary:
+        parts.append(f"Previous analysis summary: {summary[:300]}")
+
+    return "\n".join(parts)
+
+
 def synthesizer_node(state: AdvisorState) -> AdvisorState:
     """Final node to produce the polished response."""
-    # If a worker provided advice, use it. Otherwise, supervisor handles it directly.
+    analysis_text = _build_analysis_context_text(state)
+
+    # If a worker provided advice, enhance it with analysis context
     if state.get("worker_context"):
-        answer = state["worker_context"]
+        worker_advice = state["worker_context"]
+        if analysis_text:
+            # Let LLM weave worker advice + analysis context into a cohesive answer
+            user_query = state["messages"][-1].content
+            answer = safe_llm_invoke(
+                llm,
+                f"""You are FasalSaathi, a friendly Indian farming assistant.
+
+A specialist agent provided this advice:
+{worker_advice}
+
+The farmer also has this analysis context from a previous assessment:
+{analysis_text}
+
+The farmer asked: {user_query}
+
+Combine the specialist advice with the analysis context to give a comprehensive, personalized answer.
+Refer to the context naturally — don't just list it. Keep the tone warm and farmer-friendly.
+Answer in the same language the farmer used.""",
+                fallback=worker_advice
+            )
+        else:
+            answer = worker_advice
     else:
-        # Supervisor handles general chat
+        # Supervisor handles general chat — use analysis context if available
         user_query = state["messages"][-1].content
+        context_section = f"""\nThe farmer has this analysis context from a previous assessment:
+{analysis_text}
+
+Use this context naturally to personalize your answer. Don't repeat it all — only reference what's relevant to the question.
+""" if analysis_text else ""
+
         answer = safe_llm_invoke(
             llm,
-            f"You are FasalSaathi, a friendly Indian farming assistant. Answer the farmer simply and warmly: {user_query}",
+            f"""You are FasalSaathi, a friendly Indian farming assistant.
+{context_section}
+The farmer asked: {user_query}
+
+Give simple, actionable, warm advice. If analysis context is available, refer to it naturally.
+Answer in the same language the farmer used.""",
             fallback="Namaste! I'm FasalSaathi, your farming companion. I can help you with weather updates, market prices, and pest identification. How can I assist you today?"
         )
 

@@ -29,6 +29,22 @@ export const useChatStore = create((set, get) => ({
   isThinking: false,
   isListening: false,
   sessionId: getOrCreateSessionId(),
+  analysisContext: null, // Orchestrator output: { crops, schemes, summary }
+
+  // ── Set analysis context from orchestrator pipeline output ────────────────
+  setAnalysisContext: (pipelineResponse) => {
+    if (!pipelineResponse) return set({ analysisContext: null });
+    set((state) => {
+      const existing = state.analysisContext || {};
+      return {
+        analysisContext: {
+          crops: pipelineResponse.crop_recommendations !== undefined ? pipelineResponse.crop_recommendations : existing.crops,
+          schemes: pipelineResponse.scheme_recommendations !== undefined ? pipelineResponse.scheme_recommendations : existing.schemes,
+          summary: pipelineResponse.summary !== undefined ? pipelineResponse.summary : existing.summary,
+        }
+      };
+    });
+  },
 
   // ── Send a message and await the AI response ─────────────────────────────
   sendMessage: async (text) => {
@@ -53,6 +69,7 @@ export const useChatStore = create((set, get) => ({
         body: JSON.stringify({
           messages: apiMessages,
           session_id: sessionId,
+          ...(get().analysisContext ? { analysis_context: get().analysisContext } : {}),
         }),
       });
 
@@ -173,7 +190,7 @@ export const useChatStore = create((set, get) => ({
   clearChat: () => {
     const newSid = `sess-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     localStorage.setItem('fasalsaathi_session_id', newSid);
-    set({ messages: [], isThinking: false, sessionId: newSid });
+    set({ messages: [], isThinking: false, sessionId: newSid, analysisContext: null });
   },
 
   // ── Voice listening toggle ────────────────────────────────────────────────

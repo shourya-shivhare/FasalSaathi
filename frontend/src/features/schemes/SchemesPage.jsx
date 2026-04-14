@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useUserStore } from '../../stores/useUserStore';
+import { useChatStore } from '../../stores/useChatStore.jsx';
 
 // ── Indian states list ──────────────────────────────────────────────────────
 const STATES = [
@@ -30,14 +31,16 @@ export const SchemesPage = () => {
   const [income, setIncome] = useState(farmer?.annual_income || '');
   const [crops, setCrops] = useState(farmer?.crops_grown || '');
 
+  const previousSchemes = useChatStore((s) => s.analysisContext?.schemes);
+
   // Results
-  const [schemes, setSchemes] = useState([]);
-  const [summary, setSummary] = useState('');
-  const [totalFound, setTotalFound] = useState(0);
+  const [schemes, setSchemes] = useState(previousSchemes?.matched_schemes || []);
+  const [summary, setSummary] = useState(previousSchemes?.farmer_summary || '');
+  const [totalFound, setTotalFound] = useState(previousSchemes?.total_found || 0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [hasSearched, setHasSearched] = useState(!!previousSchemes);
 
   const handleSearch = async () => {
     if (!state) { setError('Please select a state'); return; }
@@ -59,6 +62,9 @@ export const SchemesPage = () => {
       setSchemes(data.matched_schemes || []);
       setSummary(data.farmer_summary || '');
       setTotalFound(data.total_found || 0);
+
+      // Share context with Chatbot
+      useChatStore.getState().setAnalysisContext({ scheme_recommendations: data });
     } catch (err) {
       setError(err.message || 'Failed to fetch recommendations');
     } finally {
