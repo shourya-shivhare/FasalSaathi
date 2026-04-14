@@ -20,7 +20,7 @@ const navItems = [
   { path: '/dashboard', label: 'Dashboard',     icon: LayoutDashboard },
   { path: '/detect',     label: 'Scan Crop',      icon: ScanLine },
   { path: '/chat',      label: 'AI Advisory',    icon: MessageCircle },
-  { path: '/market',    label: 'Market Prices',  icon: TrendingUp },
+  // { path: '/market',    label: 'Market Prices',  icon: TrendingUp },
   { path: '/schemes',   label: 'Gov Schemes',    icon: Landmark },
   { path: '/crop-suggestion', label: 'Crop Suggest', icon: Sprout },
   { path: '/profile',   label: 'Profile',        icon: User },

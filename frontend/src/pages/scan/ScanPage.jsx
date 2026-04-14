@@ -23,11 +23,11 @@ const ScanPage = () => {
   const navigate = useNavigate();
   const { injectScanContext } = useChatStore();
 
-  const handleChatHandoff = async () => {
+  const handleChatHandoff = () => {
     if (!scanResult) return;
-    // Inject the context first (this pushes it directly to the chat state & starts fetching greeting)
-    await injectScanContext(scanResult);
-    // Navigate user to the chat page visually
+    // Fire off the context injection (runs in background) and navigate immediately
+    // so the user sees the chat page with the thinking indicator while AI responds
+    injectScanContext(scanResult);
     navigate('/chat');
   };
 

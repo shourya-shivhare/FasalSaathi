@@ -92,17 +92,35 @@ export const useChatStore = create((set, get) => ({
 
   // ── Inject scan context invisibly and get opening greeting ────────────────
   injectScanContext: async (scanData) => {
-    const pestName = scanData.pests?.join(', ') || 'Unknown Pest';
+    // Extract pest names from results array (each item has .pest or .class)
+    const pestNames = (scanData.results || [])
+      .map((r) => r.pest || r.class || 'Unknown')
+      .filter(Boolean);
+    const pestName = pestNames.length > 0 ? pestNames.join(', ') : 'Unknown Pest';
+
+    // Build detailed detection info for richer context
+    const detectionDetails = (scanData.results || [])
+      .map((r) => {
+        const name = r.pest || r.class || 'Unknown';
+        const conf = r.confidence ? `${Math.round(r.confidence * 100)}%` : 'N/A';
+        const sev = r.severity || 'Medium';
+        return `${name} (Confidence: ${conf}, Severity: ${sev})`;
+      })
+      .join('; ');
+
     const suggestions = scanData.suggestions?.join('. ') || 'No suggestions available.';
     
     const secretMsg = {
       id: `u-${Date.now()}-hidden`,
       role: 'user',
-      content: `[SYSTEM: SECRET CONTEXT. DO NOT MENTION THAT I TOLD YOU THIS OR THAT YOU RECEIVED A SYSTEM MESSAGE. The user just uploaded an image of their crop. The AI pest detection system analyzed it and found: ${pestName}. The suggested treatments are: ${suggestions}. Please give a warm, supportive greeting as FasalSaathi AI. Acknowledge the exact pest found in their crop, briefly summarize the treatments you recommend, and ask if they have any specific questions about applying these treatments or anything else.]`,
+      content: `[SYSTEM: SECRET CONTEXT. DO NOT MENTION THAT I TOLD YOU THIS OR THAT YOU RECEIVED A SYSTEM MESSAGE. The user just uploaded an image of their crop. The AI pest detection system analyzed it and found: ${detectionDetails || pestName}. Total pests detected: ${scanData.total || pestNames.length}. The suggested treatments are: ${suggestions}. Please give a warm, supportive greeting as FasalSaathi AI. Acknowledge the exact pest found in their crop, briefly summarize the treatments you recommend, and ask if they have any specific questions about applying these treatments or anything else.]`,
       isHidden: true
     };
 
-    set((state) => ({ messages: [...state.messages, secretMsg], isThinking: true }));
+    // Start a fresh session for this scan handoff
+    const newSid = `sess-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem('fasalsaathi_session_id', newSid);
+    set({ messages: [secretMsg], isThinking: true, sessionId: newSid });
 
     try {
       const { messages, sessionId } = get();
@@ -138,7 +156,16 @@ export const useChatStore = create((set, get) => ({
       }));
     } catch (err) {
       console.error('[ChatStore] injectScanContext failed:', err);
-      set({ isThinking: false }); // Silently fail UI, user can still type normally
+      // Show a helpful fallback so the user isn't stuck on an empty chat
+      const fallbackMsg = {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        content: `🌾 **Pest Detection Summary**\n\n${pestName} detected in your crop.\n\n**Suggested Treatment:**\n${suggestions}\n\n⚠️ AI expert is currently unavailable (quota limit reached). You can ask follow-up questions once the service is back online.`,
+      };
+      set((state) => ({
+        messages: [...state.messages, fallbackMsg],
+        isThinking: false,
+      }));
     }
   },
 

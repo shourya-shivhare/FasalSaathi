@@ -10,6 +10,21 @@ const suggestions = [
   'Wheat ke liye fertilizer',
 ];
 
+/** Lightweight inline markdown: **bold** and newlines */
+const renderMarkdown = (text) => {
+  if (!text) return text;
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    // Split remaining text on newlines
+    return part.split('\n').map((line, j, arr) => (
+      <React.Fragment key={`${i}-${j}`}>{line}{j < arr.length - 1 && <br />}</React.Fragment>
+    ));
+  });
+};
+
 const ChatPage = () => {
   const { messages, isThinking, sendMessage, isListening, setListening } = useChatStore();
   const [input, setInput] = useState('');
@@ -137,7 +152,7 @@ const ChatPage = () => {
                 lineHeight: 1.65,
                 fontWeight: 500,
               }}>
-                <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{msg.content}</p>
+                <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{isUser ? msg.content : renderMarkdown(msg.content)}</p>
                 <div style={{ 
                   marginTop: '8px', fontSize: '0.75rem', 
                   color: isUser ? 'rgba(255,255,255,0.7)' : 'var(--color-text-secondary)',

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Camera, ScanLine, TrendingUp, Leaf, Bell, CloudSun, ShieldAlert } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Camera, ScanLine, TrendingUp, Leaf, Bell, CloudSun, ShieldAlert, Sun, Cloud, CloudRain, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { WeatherCard } from './components/WeatherCard';
@@ -9,7 +9,6 @@ import { IrrigationTimer } from './components/IrrigationTimer';
 import { AlertsFeed } from './components/AlertsFeed';
 import { useFieldData } from './hooks/useFieldData';
 import { useUserStore } from '../../stores/useUserStore.jsx';
-import { mockAlerts } from '../../lib/mockData.jsx';
 
 const StatCard = ({ icon: Icon, label, value, sub }) => (
   <div style={{
@@ -40,25 +39,114 @@ const StatCard = ({ icon: Icon, label, value, sub }) => (
   </div>
 );
 
+/** Return a greeting based on the current hour */
+const getGreeting = () => {
+  const hr = new Date().getHours();
+  if (hr < 12) return 'Good morning';
+  if (hr < 17) return 'Good afternoon';
+  return 'Good evening';
+};
+
+/** Get a weather icon for the header chip */
+const getWeatherChipIcon = (condition) => {
+  if (!condition) return CloudSun;
+  const c = condition.toLowerCase();
+  if (c.includes('sun') || c.includes('clear')) return Sun;
+  if (c.includes('rain') || c.includes('drizzle') || c.includes('shower')) return CloudRain;
+  if (c.includes('thunder')) return Zap;
+  return Cloud;
+};
+
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { farmer, logout } = useUserStore();
-  const { activeField, weather, soil, irrigation, hasFields, isLoading } = useFieldData();
+  const { activeField, weather, soil, irrigation, hasFields, isLoading, fields, scanHistory } = useFieldData();
 
-  if (isLoading) {
-    return (
-      <PageWrapper>
-        <div className="space-y-4 animate-pulse">
-          <div style={{ height: '80px', background: 'var(--color-surface-hover)', borderRadius: '16px' }} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px' }}>
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{ height: '96px', background: 'var(--color-surface-hover)', borderRadius: '16px' }} />
-            ))}
-          </div>
-        </div>
-      </PageWrapper>
-    );
-  }
+  // Derive real stats from actual data
+  const stats = useMemo(() => {
+    const totalCrops = [...new Set(fields.map(f => f.crop).filter(Boolean))].length;
+    const totalScans = (scanHistory || []).length;
+    const recentPests = (scanHistory || []).filter(s => {
+      const d = new Date(s.timestamp);
+      const now = new Date();
+      return (now - d) < 30 * 24 * 60 * 60 * 1000; // last 30 days
+    }).length;
+
+    return { totalCrops, totalScans, recentPests };
+  }, [fields, scanHistory]);
+
+  // Generate contextual alerts from real data
+  const alerts = useMemo(() => {
+    const result = [];
+
+    // Weather-based alert
+    if (weather?.riskLevel === 'HIGH') {
+      result.push({
+        id: 'alert-weather',
+        type: 'weather_warning',
+        title: `${weather.condition} — High Risk`,
+        message: `Temperature is ${weather.temp}°C with ${weather.humidity}% humidity. Take precautions for your crops.`,
+        severity: 'high',
+        timestamp: new Date(),
+        icon: 'Thermometer',
+      });
+    }
+
+    // Soil-based alert
+    if (soil && soil.N < 250) {
+      result.push({
+        id: 'alert-nitrogen',
+        type: 'nutrient_deficiency',
+        title: 'Low Nitrogen',
+        message: `Nitrogen level is ${soil.N} kg/ha which is below optimal (280+ kg/ha). Consider urea application.`,
+        severity: 'medium',
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        icon: 'AlertTriangle',
+      });
+    }
+    if (soil && soil.pH && (soil.pH < 5.5 || soil.pH > 8.0)) {
+      result.push({
+        id: 'alert-ph',
+        type: 'nutrient_deficiency',
+        title: `Soil pH ${soil.pH < 5.5 ? 'Too Low' : 'Too High'}`,
+        message: `pH level is ${soil.pH}. Optimal range is 6.0–7.5 for most crops.`,
+        severity: 'medium',
+        timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
+        icon: 'AlertTriangle',
+      });
+    }
+
+    // Pest detection alert from recent scans
+    if (scanHistory?.length > 0) {
+      const latest = scanHistory[0];
+      result.push({
+        id: `alert-pest-${latest.id}`,
+        type: 'pest_detection',
+        title: `Recent Pest: ${latest.pestName || 'Detected'}`,
+        message: latest.message || `Pest detected with ${latest.confidence || 'high'} confidence. Check treatment recommendations.`,
+        severity: latest.severity?.toLowerCase() || 'low',
+        timestamp: new Date(latest.timestamp),
+        icon: 'Bug',
+      });
+    }
+
+    // If no alerts at all, show a positive one
+    if (result.length === 0) {
+      result.push({
+        id: 'alert-ok',
+        type: 'info',
+        title: 'All Clear ✓',
+        message: 'No alerts at the moment. Your farm is looking good!',
+        severity: 'low',
+        timestamp: new Date(),
+        icon: 'Calendar',
+      });
+    }
+
+    return result;
+  }, [weather, soil, scanHistory]);
+
+  const WeatherChipIcon = getWeatherChipIcon(weather?.condition);
 
   return (
     <PageWrapper>
@@ -70,23 +158,27 @@ const DashboardPage = () => {
             fontSize: '1.65rem', fontWeight: 700,
             color: 'var(--color-text-primary)', margin: 0,
           }}>
-            Good morning, {farmer?.name?.split(' ')[0] || 'Farmer'} 🌱
+            {getGreeting()}, {farmer?.name?.split(' ')[0] || 'Farmer'} 🌱
           </h1>
           <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', margin: '4px 0 0' }}>
-            {hasFields ? `Managing ${activeField?.name || 'your farm'} · ${farmer?.village || 'India'}` : 'Welcome to FasalSaathi'}
+            {hasFields
+              ? `Managing ${activeField?.name || 'your farm'} · ${farmer?.district || farmer?.state || 'India'}`
+              : 'Welcome to FasalSaathi — add a field to get started'}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            background: 'var(--color-surface)', borderRadius: '12px', padding: '8px 16px',
-            border: '1px solid var(--color-border)',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-            fontSize: '0.85rem', color: 'var(--color-text-secondary)',
-          }}>
-            <CloudSun size={18} color="#92400E" />
-            <span>28°C · Sunny</span>
-          </div>
+          {weather && weather.temp !== '--' && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              background: 'var(--color-surface)', borderRadius: '12px', padding: '8px 16px',
+              border: '1px solid var(--color-border)',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+              fontSize: '0.85rem', color: 'var(--color-text-secondary)',
+            }}>
+              <WeatherChipIcon size={18} color="#92400E" />
+              <span>{weather.temp}°C · {weather.condition}</span>
+            </div>
+          )}
           <button style={{
             width: '40px', height: '40px', borderRadius: '12px',
             background: 'var(--color-surface)', border: '1px solid var(--color-border)',
@@ -98,12 +190,31 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Stats Row */}
+      {/* Stats Row — all derived from real data */}
       <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
-        <StatCard icon={Leaf} label="Crops Monitored" value={hasFields ? '12' : '0'} />
-        <StatCard icon={ShieldAlert} label="Pests Detected" value="3" sub="This month" />
-        <StatCard icon={ScanLine} label="Scans This Week" value="8" />
-        <StatCard icon={TrendingUp} label="Market Index" value="+2.4%" sub="↑ Wheat up today" />
+        <StatCard
+          icon={Leaf}
+          label="Crops Monitored"
+          value={stats.totalCrops}
+          sub={hasFields ? `${fields.length} field${fields.length > 1 ? 's' : ''}` : null}
+        />
+        <StatCard
+          icon={ShieldAlert}
+          label="Pests Detected"
+          value={stats.recentPests}
+          sub={stats.recentPests > 0 ? 'Last 30 days' : null}
+        />
+        <StatCard
+          icon={ScanLine}
+          label="Total Scans"
+          value={stats.totalScans}
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="Total Land"
+          value={`${fields.reduce((s, f) => s + (parseFloat(f.area) || 0), 0).toFixed(1)}`}
+          sub="Acres"
+        />
       </div>
 
       {/* Scan & Schemes CTAs */}
@@ -192,28 +303,39 @@ const DashboardPage = () => {
       </div>
 
       {/* Two-column: Weather + Irrigation */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
-        <WeatherCard weather={weather} />
-        <IrrigationTimer irrigation={irrigation} />
-      </div>
+      {weather && hasFields && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+          <WeatherCard weather={weather} />
+          {irrigation && <IrrigationTimer irrigation={irrigation} />}
+        </div>
+      )}
+
+      {/* Weather only (no fields yet) */}
+      {weather && !hasFields && (
+        <div style={{ marginBottom: '24px' }}>
+          <WeatherCard weather={weather} />
+        </div>
+      )}
 
       {/* Soil Health */}
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{
-          fontFamily: "'Plus Jakarta Sans',sans-serif",
-          fontSize: '1.05rem', fontWeight: 700,
-          color: 'var(--color-text-primary)', marginBottom: '12px', marginTop: 0,
-        }}>
-          🌱 Soil Health
-        </h2>
-        <SoilHealthGrid soil={soil} />
-      </div>
+      {soil && hasFields && (
+        <div style={{ marginBottom: '24px' }}>
+          <h2 style={{
+            fontFamily: "'Plus Jakarta Sans',sans-serif",
+            fontSize: '1.05rem', fontWeight: 700,
+            color: 'var(--color-text-primary)', marginBottom: '12px', marginTop: 0,
+          }}>
+            🌱 Soil Health
+          </h2>
+          <SoilHealthGrid soil={soil} />
+        </div>
+      )}
 
       {/* Crop Status */}
       {hasFields && activeField && <CropStatusBanner field={activeField} />}
 
-      {/* Alerts Feed */}
-      <AlertsFeed alerts={mockAlerts} />
+      {/* Alerts Feed — derived from real data */}
+      <AlertsFeed alerts={alerts} />
 
       {/* Empty State */}
       {!hasFields && (
@@ -223,7 +345,17 @@ const DashboardPage = () => {
         }}>
           <div style={{ fontSize: '48px', marginBottom: '12px' }}>🌱</div>
           <h3 style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>No fields added yet</h3>
-          <p style={{ color: 'var(--color-text-secondary)', margin: 0 }}>Add your first field to start tracking your farm</p>
+          <p style={{ color: 'var(--color-text-secondary)', margin: '0 0 20px' }}>Add your first field in Profile to start tracking your farm</p>
+          <button
+            onClick={() => navigate('/profile')}
+            style={{
+              padding: '12px 28px', background: 'var(--color-accent-primary)',
+              color: '#fff', border: 'none', borderRadius: '12px',
+              fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer',
+            }}
+          >
+            Go to Profile →
+          </button>
         </div>
       )}
 

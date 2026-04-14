@@ -11,7 +11,7 @@ import { FieldMap } from '../fields/components/FieldMap';
 
 const ProfilePage = () => {
   const { farmer, user } = useUserStore();
-  const { fields, addField, setActiveField, activeFieldId } = useFieldStore();
+  const { fields, addField, setActiveField, activeFieldId, getTotalLand, getUniqueCrops, deleteField } = useFieldStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [showFieldMap, setShowFieldMap] = useState(false);
   const [selectedField, setSelectedField] = useState(null);
@@ -96,10 +96,11 @@ const ProfilePage = () => {
           <div style={{ background: 'var(--color-surface)', borderRadius: '20px', border: '1px solid var(--color-border)', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
             <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 14px' }}>🌾 Farm Details</h3>
             {[
-              { label: 'Total Land', value: `${farmer?.land_size_acres || fields.reduce((s, f) => s + (parseFloat(f.area) || 0), 0) || 0} Acres` },
-              { label: 'Primary Crops', value: farmer?.crops_grown?.length > 0 ? farmer.crops_grown.join(', ') : (fields.length > 0 ? fields.map(f => f.crop).slice(0, 2).join(', ') : 'None') },
+              { label: 'Total Land', value: `${getTotalLand() || farmer?.land_size_acres || 0} Acres` },
+              { label: 'Primary Crops', value: getUniqueCrops().length > 0 ? getUniqueCrops().join(', ') : (farmer?.crops_grown?.length > 0 ? farmer.crops_grown.join(', ') : 'None') },
+              { label: 'Fields Added', value: `${fields.length}` },
               { label: 'Category', value: farmer?.category || 'Marginal' },
-              { label: 'Annual Income', value: farmer?.annual_income ? `₹${farmer.annual_income}` : '—' },
+              { label: 'Annual Income', value: farmer?.annual_income ? `₹${Number(farmer.annual_income).toLocaleString('en-IN')}` : '—' },
             ].map(item => (
               <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--color-border)', fontSize: '0.83rem' }}>
                 <span style={{ color: 'var(--color-text-secondary)' }}>{item.label}</span>
