@@ -38,11 +38,11 @@ const Modal = React.forwardRef(
                 <div
                   className="flex items-center justify-between px-5 py-4 theme-bg-accent-primary transition-colors duration-200"
                 >
-                  <h2 className="text-white font-bold text-base">{title}</h2>
+                  <h2 className="theme-text-on-accent font-bold text-base">{title}</h2>
                   {onClose && (
                     <button
                       onClick={onClose}
-                      className="p-1 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                      className="p-1 rounded-lg theme-text-on-accent opacity-60 hover:opacity-100 hover:bg-white/10 transition-all"
                     >
                       <X className="w-5 h-5" />
                     </button>

@@ -39,6 +39,12 @@
   --color-danger:            #DC2626;
   --color-danger-bg:         #FEE2E2;
 
+  /* --- Text on Background Colors --- */
+  --color-on-accent:         #FFFFFF;
+  --color-on-success:        #FFFFFF;
+  --color-on-warning:        #FFFFFF;
+  --color-on-danger:         #FFFFFF;
+
   /* --- Layout --- */
   --header-height:  0px;
   --bottom-nav-h:   0px;
@@ -75,6 +81,12 @@
 
   --color-danger:            #F87171;
   --color-danger-bg:         #1F0707;
+
+  /* --- Text on Background Colors --- */
+  --color-on-accent:         #052E16;
+  --color-on-success:        #052E16;
+  --color-on-warning:        #1C1700;
+  --color-on-danger:         #3B0000;
 }
 
 /* ── Base reset ────────────────────────────────────────────── */
@@ -118,6 +130,12 @@ body {
 .theme-text-success         { color: var(--color-success); }
 .theme-text-warning         { color: var(--color-warning); }
 .theme-text-danger          { color: var(--color-danger); }
+
+/* On-Background Text Utilities */
+.theme-text-on-accent       { color: var(--color-on-accent); }
+.theme-text-on-success      { color: var(--color-on-success); }
+.theme-text-on-warning      { color: var(--color-on-warning); }
+.theme-text-on-danger       { color: var(--color-on-danger); }
 
 /* Border utility */
 .theme-border { border-color: var(--color-border); }

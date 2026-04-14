@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Camera, ScanLine, CheckCircle2, AlertCircle, History, ArrowRight, X, Upload, Info, Loader2 } from 'lucide-react';
+import { Camera, ScanLine, CheckCircle2, AlertCircle, History, ArrowRight, X, Upload, Info, Loader2, MessageCircle } from 'lucide-react';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import api from '../../lib/api.jsx';
+import { useNavigate } from 'react-router-dom';
+import { useChatStore } from '../../stores/useChatStore.jsx';
 
 const SEVERITY_STYLES = {
   High:   { bg: '#FEE2E2', text: '#DC2626', dot: '#DC2626' },
@@ -17,6 +19,17 @@ const ScanPage = () => {
   const [scanError,    setScanError]      = useState(null);
   const [isDragging,   setIsDragging]     = useState(false);
   const fileInputRef = useRef(null);
+
+  const navigate = useNavigate();
+  const { injectScanContext } = useChatStore();
+
+  const handleChatHandoff = async () => {
+    if (!scanResult) return;
+    // Inject the context first (this pushes it directly to the chat state & starts fetching greeting)
+    await injectScanContext(scanResult);
+    // Navigate user to the chat page visually
+    navigate('/chat');
+  };
 
   // ── mock history (replace with DB query later) ─────────────────────────
   const mockHistory = [
@@ -229,11 +242,24 @@ const ScanPage = () => {
                   </div>
                 ))}
               </div>
-              <button
-                onClick={clearImage}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '13px', background: 'var(--color-accent-primary)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', marginTop: '20px' }}>
-                Scan Another Image <ArrowRight size={16} />
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
+                <button
+                  onClick={handleChatHandoff}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-accent-primary)', border: '2px solid var(--color-accent-primary)', borderRadius: '12px', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(26,122,64,0.1)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-section-header-bg)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-bg-primary)'; e.currentTarget.style.transform = 'none'; }}
+                >
+                  <MessageCircle size={18} /> Chat with AI Expert about this
+                </button>
+                <button
+                  onClick={clearImage}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '13px', background: 'transparent', color: 'var(--color-text-secondary)', border: 'none', borderRadius: '12px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  Scan Another Image <ArrowRight size={16} />
+                </button>
+              </div>
             </div>
           )}
         </div>

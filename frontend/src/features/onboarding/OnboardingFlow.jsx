@@ -186,7 +186,7 @@ const OnboardingFlow = ({ onComplete }) => {
               </div>
               <div style={{ marginBottom: '32px' }}>
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#4A5568', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Field Size (Acres)</label>
-                <input type="number" value={fieldSize} onChange={e => setFieldSize(e.target.value)} placeholder="e.g. 2.5" style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #E2E8E0', background: '#fff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }} />
+                <input type="number" value={fieldSize} onChange={e => setFieldSize(e.target.value)} placeholder="e.g. 2.5" style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #E2E8E0', background: '#fff', fontSize: '0.9rem', color: '#1A2B1A', outline: 'none', boxSizing: 'border-box' }} />
               </div>
             </>
           )}

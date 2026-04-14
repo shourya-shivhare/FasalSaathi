@@ -18,12 +18,12 @@ from fastapi.responses import JSONResponse
 # ---------------------------------------------------------------------------
 # Path plumbing — make ai-service importable from the backend
 # ---------------------------------------------------------------------------
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
-# backend/app/api/v1/endpoints/detect.py → 5 parents up = project root
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent.parent
+# backend/app/api/v1/endpoints/detect.py → 6 parents up = project root
 _AI_SERVICE_DIR = _PROJECT_ROOT / "ai-service"
 
 if str(_AI_SERVICE_DIR) not in sys.path:
-    sys.path.insert(0, str(_AI_SERVICE_DIR))
+    sys.path.append(str(_AI_SERVICE_DIR))
 
 # ---------------------------------------------------------------------------
 # Internal imports (from ai-service)
