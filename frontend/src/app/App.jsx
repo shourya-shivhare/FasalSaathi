@@ -9,9 +9,9 @@ import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { ChatPage } from '../features/chat/ChatPage';
 import { ProfilePage } from '../features/profile/ProfilePage';
 import { MarketPage } from '../features/market/MarketPage';
-import { AdvisoryPage } from '../features/advisory/AdvisoryPage';
 import { OnboardingFlow } from '../features/onboarding/OnboardingFlow';
 import { SchemesPage } from '../features/schemes/SchemesPage';
+import { CropSuggestionPage } from '../features/crop-suggestion/CropSuggestionPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { SignupPage } from '../features/auth/SignupPage';
 import Home from '../pages/Home';
@@ -92,8 +92,8 @@ const AppContent = () => {
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/market" element={<MarketPage />} />
-            <Route path="/advisory" element={<AdvisoryPage />} />
             <Route path="/schemes" element={<SchemesPage />} />
+            <Route path="/crop-suggestion" element={<CropSuggestionPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>

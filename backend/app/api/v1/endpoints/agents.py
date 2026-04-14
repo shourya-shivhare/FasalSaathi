@@ -51,7 +51,7 @@ async def scheme_recommendation(
         payload.setdefault("district", current_user.district or "")
         payload.setdefault("farmer_category", current_user.category or "marginal")
         if current_user.crops_grown:
-            payload.setdefault("crop_types", current_user.crops_grown.split(","))
+            payload.setdefault("crop_types", current_user.crops_grown)
         if current_user.annual_income:
             payload.setdefault("annual_income", current_user.annual_income)
         if current_user.gender:
@@ -82,7 +82,7 @@ async def full_analysis(
         payload.setdefault("district", current_user.district or "")
         payload.setdefault("farmer_category", current_user.category or "marginal")
         if current_user.crops_grown:
-            payload.setdefault("crop_types", current_user.crops_grown.split(","))
+            payload.setdefault("crop_types", current_user.crops_grown)
         if current_user.annual_income:
             payload.setdefault("annual_income", current_user.annual_income)
         if current_user.gender:
