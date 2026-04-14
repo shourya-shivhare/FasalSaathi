@@ -5,12 +5,19 @@ import uvicorn
 from app.core.config import settings
 from app.api.v1.router import api_router
 
+#database properites
+from app.db.database import Base, engine
+from app.models import user, crop # change this based on models 
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     description="FasalSaathi Backend API",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
+
+#creating tables of all the defined models 
+Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
