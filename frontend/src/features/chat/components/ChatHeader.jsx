@@ -31,7 +31,7 @@ export const ChatHeader = ({ isThinking }) => {
     >
       {/* Avatar */}
       <div
-        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+        className="w-10 h-10 rounded-full flex items-center justify-center theme-text-on-accent text-sm font-bold flex-shrink-0"
         style={{ 
           background: isDark ? 'var(--color-surface-hover)' : 'rgba(255,255,255,0.2)', 
           border: isDark ? '1px solid var(--color-border)' : '2px solid rgba(255,255,255,0.4)' 

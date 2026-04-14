@@ -110,7 +110,7 @@ const ChatPage = () => {
           </div>
         )}
 
-        {messages.map((msg, i) => {
+        {messages.filter(msg => !msg.isHidden).map((msg, i) => {
           const isUser = msg.role === 'user';
           return (
             <div key={i} style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', gap: '16px', alignItems: 'flex-end' }}>
