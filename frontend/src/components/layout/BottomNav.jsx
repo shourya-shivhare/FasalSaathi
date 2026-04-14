@@ -14,7 +14,7 @@ import { useChatStore } from '../../stores/useChatStore.jsx';
 const navItems = [
   { path: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { path: '/chat', label: 'Chat', icon: MessageCircle, dot: true },
-  { path: '/scan', label: 'Scan', icon: ScanLine },
+  { path: '/detect', label: 'Scan', icon: ScanLine },
   { path: '/profile', label: 'Profile', icon: User },
   { path: '/market', label: 'Market', icon: TrendingUp },
   { path: '/advisory', label: 'Advisory', icon: BookOpen },

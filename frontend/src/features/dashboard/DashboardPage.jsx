@@ -108,7 +108,7 @@ const DashboardPage = () => {
 
       {/* Scan CTA */}
       <div
-        onClick={() => navigate('/scan')}
+        onClick={() => navigate('/detect')}
         style={{
           background: 'linear-gradient(135deg, #1A7A40, #2D8F55)',
           borderRadius: '16px',

@@ -87,7 +87,7 @@ const AppContent = () => {
         <main className="main-content">
           <Routes>
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/scan" element={<ScanPage />} />
+            <Route path="/detect" element={<ScanPage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/market" element={<MarketPage />} />

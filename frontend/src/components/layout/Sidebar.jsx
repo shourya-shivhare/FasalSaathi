@@ -17,7 +17,7 @@ import { useUserStore } from '../../stores/useUserStore.jsx';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard',     icon: LayoutDashboard },
-  { path: '/scan',      label: 'Scan Crop',      icon: ScanLine },
+  { path: '/detect',     label: 'Scan Crop',      icon: ScanLine },
   { path: '/chat',      label: 'AI Advisory',    icon: MessageCircle },
   { path: '/market',    label: 'Market Prices',  icon: TrendingUp },
   { path: '/advisory',  label: 'Advisory',       icon: BookOpen },

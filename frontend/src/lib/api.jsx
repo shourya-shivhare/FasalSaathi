@@ -168,9 +168,15 @@ export const api = {
   },
 
   // ── User profile ────────────────────────────────────────────────────────
-  async updateUserProfile(profileData) {
-    localStorage.setItem('fasalsaathi_profile', JSON.stringify({ ...profileData, updatedAt: new Date() }));
-    return { ...profileData, updatedAt: new Date() };
+  async updateUserProfile(accessToken, profileData) {
+    return fetchJSON(`${API_BASE}/users/me`, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(profileData),
+    });
   },
 
   // ── Pest Detection — calls backend proxy which calls ai-service YOLO ───
@@ -179,7 +185,7 @@ export const api = {
     formData.append('file', imageFile);
     // Try backend first (has YOLO weight path setup), fallback to ai-service direct
     try {
-      return await fetchJSON(`${API_BASE}/detect`, { method: 'POST', body: formData });
+      return await fetchJSON(`${API_BASE}/detect/`, { method: 'POST', body: formData });
     } catch {
       return await fetchJSON(`${AI_BASE}/detect`, { method: 'POST', body: formData });
     }

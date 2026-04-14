@@ -9,7 +9,8 @@ from app.core import security
 from app.models.user import User
 
 reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/auth/login"
+    tokenUrl=f"{settings.API_V1_STR}/auth/login",
+    auto_error=False
 )
 
 def get_db() -> Generator:
@@ -22,6 +23,12 @@ def get_db() -> Generator:
 def get_current_user(
     db: Session = Depends(get_db), token: str = Depends(reusable_oauth2)
 ) -> User:
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
@@ -36,3 +43,19 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+def get_optional_current_user(
+    db: Session = Depends(get_db), token: str | None = Depends(reusable_oauth2)
+) -> User | None:
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+        )
+        token_data = payload.get("sub")
+        if not token_data:
+            return None
+        return db.query(User).filter(User.id == token_data).first()
+    except Exception:
+        return None

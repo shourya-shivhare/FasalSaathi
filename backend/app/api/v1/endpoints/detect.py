@@ -140,7 +140,7 @@ def _build_response(
 # ---------------------------------------------------------------------------
 
 @router.post(
-    "/detect",
+    "/",
     summary="Detect pests in an uploaded image",
     response_description="Detected pests with confidence scores and treatment suggestions",
     status_code=status.HTTP_200_OK,

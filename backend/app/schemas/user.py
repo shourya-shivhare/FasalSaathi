@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr
+from typing import List, Optional
 from datetime import datetime
-from typing import Optional
+from pydantic import BaseModel, EmailStr
+
 
 # Shared properties
 class UserBase(BaseModel):
@@ -8,6 +9,16 @@ class UserBase(BaseModel):
     name: str
     phone: Optional[str] = None
     is_active: Optional[bool] = True
+
+    # New Farmer profile fields
+    state: Optional[str] = None
+    district: Optional[str] = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    land_size_acres: Optional[float] = None
+    crops_grown: Optional[List[str]] = None
+    category: Optional[str] = None
+    annual_income: Optional[float] = None
 
 # Properties to receive via API on creation
 class UserCreate(UserBase):
