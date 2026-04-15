@@ -1,6 +1,7 @@
 // src/stores/useChatStore.jsx
 // Connects to the real FasalSaathi AI service via the backend proxy.
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
@@ -24,7 +25,9 @@ function getOrCreateSessionId() {
   return sid;
 }
 
-export const useChatStore = create((set, get) => ({
+export const useChatStore = create(
+  persist(
+    (set, get) => ({
   messages: [],          // { role: 'user'|'assistant', content: string, id: string }
   isThinking: false,
   isListening: false,
@@ -59,32 +62,72 @@ export const useChatStore = create((set, get) => ({
       // Build the messages array for the API — all messages including the new one
       const apiMessages = messages.map((m) => ({ role: m.role, content: m.content }));
 
+      const isAnalyze = text.toLowerCase().startsWith('/analyze');
       const token = getAccessToken();
-      const res = await fetch(`${API_BASE}/chat/`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          messages: apiMessages,
-          session_id: sessionId,
-          ...(get().analysisContext ? { analysis_context: get().analysisContext } : {}),
-        }),
-      });
+      let answer;
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }));
-        throw new Error(err.detail || `HTTP ${res.status}`);
-      }
+      if (isAnalyze) {
+        // Reroute exclusively to the Agent Orchestrator and Planner
+        const actualQuery = text.replace(/^\/analyze\s*/i, '');
+        let farmer = {};
+        try {
+           farmer = JSON.parse(localStorage.getItem('fasalsaathi-user'))?.state?.farmerProfile || {};
+        } catch {}
 
-      const data = await res.json();
-      const answer = data.answer || 'Maafi chahta hoon, abhi jawab dene mein dikkat aa rahi hai.';
+        const payload = {
+           user_query: actualQuery || 'Full analysis please',
+           state: farmer.state || 'Unknown',
+           district: farmer.district || '',
+           farmer_category: farmer.farmer_category || 'marginal',
+           season: farmer.season || 'Rabi',
+           soil_type: farmer.soil_type || 'Loamy',
+           previous_analysis_context: get().analysisContext || {}
+        };
+        const res = await fetch(`${API_BASE}/agents/full-analysis`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payload)
+        });
 
-      // Update session ID if the server returned a new one
-      if (data.session_id && data.session_id !== sessionId) {
-        localStorage.setItem('fasalsaathi_session_id', data.session_id);
-        set({ sessionId: data.session_id });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        
+        // Output the orchestrator summary into chat!
+        answer = `*Orchestrator Analysis Complete!*\n\n${data.summary}\n\n*Agents Chosen:* ${data.steps[0].data.agents_selected.join(', ')}`;
+        
+        // Persist the context
+        get().setAnalysisContext(data);
+      } else {
+        // Standard LangGraph Chat Pipeline
+        const res = await fetch(`${API_BASE}/chat/`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            messages: apiMessages,
+            session_id: sessionId,
+            ...(get().analysisContext ? { analysis_context: get().analysisContext } : {}),
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        answer = data.answer || 'Maafi chahta hoon, abhi jawab dene mein dikkat aa rahi hai.';
+
+        // Update session ID if the server returned a new one
+        if (data.session_id && data.session_id !== sessionId) {
+          localStorage.setItem('fasalsaathi_session_id', data.session_id);
+          set({ sessionId: data.session_id });
+        }
       }
 
       const aiMsg = { id: `a-${Date.now()}`, role: 'assistant', content: answer };
@@ -195,4 +238,14 @@ export const useChatStore = create((set, get) => ({
 
   // ── Voice listening toggle ────────────────────────────────────────────────
   setListening: (isListening) => set({ isListening }),
-}));
+}),
+    {
+      name: 'fasalsaathi-chat',
+      partialize: (s) => ({
+        messages: s.messages,
+        sessionId: s.sessionId,
+        analysisContext: s.analysisContext,
+      }),
+    }
+  )
+);

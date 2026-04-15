@@ -6,6 +6,7 @@ import {
 import api from '../../lib/api';
 import { useUserStore } from '../../stores/useUserStore';
 import { useChatStore } from '../../stores/useChatStore.jsx';
+import { useResultsStore } from '../../stores/useResultsStore.jsx';
 
 // ── Indian states list ──────────────────────────────────────────────────────
 const STATES = [
@@ -33,14 +34,23 @@ export const SchemesPage = () => {
 
   const previousSchemes = useChatStore((s) => s.analysisContext?.schemes);
 
-  // Results
-  const [schemes, setSchemes] = useState(previousSchemes?.matched_schemes || []);
-  const [summary, setSummary] = useState(previousSchemes?.farmer_summary || '');
-  const [totalFound, setTotalFound] = useState(previousSchemes?.total_found || 0);
+  // Persisted results store
+  const { schemeResults, setSchemeResults } = useResultsStore();
+
+  // Results — initialize from persisted store, fall back to analysisContext
+  const [schemes, setSchemes] = useState(
+    schemeResults.hasSearched ? schemeResults.schemes : (previousSchemes?.matched_schemes || [])
+  );
+  const [summary, setSummary] = useState(
+    schemeResults.hasSearched ? schemeResults.summary : (previousSchemes?.farmer_summary || '')
+  );
+  const [totalFound, setTotalFound] = useState(
+    schemeResults.hasSearched ? schemeResults.totalFound : (previousSchemes?.total_found || 0)
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
-  const [hasSearched, setHasSearched] = useState(!!previousSchemes);
+  const [hasSearched, setHasSearched] = useState(schemeResults.hasSearched || !!previousSchemes);
 
   const handleSearch = async () => {
     if (!state) { setError('Please select a state'); return; }
@@ -62,6 +72,13 @@ export const SchemesPage = () => {
       setSchemes(data.matched_schemes || []);
       setSummary(data.farmer_summary || '');
       setTotalFound(data.total_found || 0);
+
+      // Persist results to store (survives navigation)
+      setSchemeResults({
+        schemes: data.matched_schemes || [],
+        summary: data.farmer_summary || '',
+        totalFound: data.total_found || 0,
+      });
 
       // Share context with Chatbot
       useChatStore.getState().setAnalysisContext({ scheme_recommendations: data });
