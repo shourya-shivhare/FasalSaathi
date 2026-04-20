@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Camera, ScanLine, CheckCircle2, AlertCircle, History, ArrowRight, X, Upload, Info, Loader2, MessageCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Camera, ScanLine, CheckCircle2, AlertCircle, History, ArrowRight, X, Upload, Info, Loader2, MessageCircle, Trash2 } from 'lucide-react';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import api from '../../lib/api.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,36 @@ const SEVERITY_STYLES = {
   Low:    { bg: '#DCFCE7', text: '#166534', dot: '#22C55E' },
 };
 
+const SCAN_HISTORY_KEY = 'fasalsaathi_scan_history';
+const MAX_HISTORY = 20;
+
+/** Load scan history from localStorage */
+const loadScanHistory = () => {
+  try {
+    const raw = localStorage.getItem(SCAN_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+};
+
+/** Save a new scan entry to localStorage history */
+const saveScanToHistory = (scanResult) => {
+  if (!scanResult?.results?.length) return;
+  const history = loadScanHistory();
+  const topPest = scanResult.results[0];
+  const entry = {
+    id: `scan-${Date.now()}`,
+    name: topPest.pest || topPest.class || 'Unknown',
+    date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+    confidence: Math.round((topPest.confidence || 0) * 100),
+    severity: topPest.severity?.replace(/[🔴🟡🟢]\s*/g, '').trim() || 'Medium',
+    totalDetected: scanResult.total || 1,
+    timestamp: Date.now(),
+  };
+  const updated = [entry, ...history].slice(0, MAX_HISTORY);
+  localStorage.setItem(SCAN_HISTORY_KEY, JSON.stringify(updated));
+  return updated;
+};
+
 const ScanPage = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedFile, setSelectedFile]   = useState(null);
@@ -18,10 +48,14 @@ const ScanPage = () => {
   const [scanResult,   setScanResult]     = useState(null);   // API response
   const [scanError,    setScanError]      = useState(null);
   const [isDragging,   setIsDragging]     = useState(false);
+  const [scanHistory,  setScanHistory]    = useState([]);
   const fileInputRef = useRef(null);
 
   const navigate = useNavigate();
   const { injectScanContext } = useChatStore();
+
+  // Load scan history on mount
+  useEffect(() => { setScanHistory(loadScanHistory()); }, []);
 
   const handleChatHandoff = () => {
     if (!scanResult) return;
@@ -31,12 +65,10 @@ const ScanPage = () => {
     navigate('/chat');
   };
 
-  // ── mock history (replace with DB query later) ─────────────────────────
-  const mockHistory = [
-    { id: 1, name: 'Aphids',         date: '24 Mar', confidence: 92, color: '#DC2626' },
-    { id: 2, name: 'Leaf Blight',    date: '20 Mar', confidence: 88, color: '#F59E0B' },
-    { id: 3, name: 'Spotted Beetle', date: '15 Mar', confidence: 95, color: '#DC2626' },
-  ];
+  const clearHistory = useCallback(() => {
+    localStorage.removeItem(SCAN_HISTORY_KEY);
+    setScanHistory([]);
+  }, []);
 
   // ── File selection handlers ────────────────────────────────────────────
   const handleFile = (file) => {
@@ -62,6 +94,9 @@ const ScanPage = () => {
     try {
       const result = await api.detectPest(selectedFile);
       setScanResult(result);
+      // Save to persistent scan history
+      const updatedHistory = saveScanToHistory(result);
+      if (updatedHistory) setScanHistory(updatedHistory);
     } catch (err) {
       setScanError(err.message || 'Detection failed. Please try again.');
     } finally {
@@ -199,25 +234,23 @@ const ScanPage = () => {
 
           {/* ── Detection Result ──────────────────────────────────────── */}
           {hasPests && (
-            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', borderLeft: '4px solid var(--color-accent-primary)', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', animation: 'fadeIn 0.4s ease' }}>
+            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #E5E7EB', borderLeft: '4px solid #1A7A40', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', animation: 'fadeIn 0.4s ease' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <CheckCircle2 size={22} color="var(--color-accent-primary)" />
-                <span style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, color: 'var(--color-accent-primary)', fontSize: '0.95rem' }}>
+                <CheckCircle2 size={22} color="#1A7A40" />
+                <span style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, color: '#1A7A40', fontSize: '0.95rem' }}>
                   {scanResult.total} Pest{scanResult.total > 1 ? 's' : ''} Detected
                 </span>
               </div>
               {scanResult.results.map((det, i) => {
-                const sev = det.severity || 'Medium';
+                const sevRaw = det.severity || 'Medium';
+                const sev = sevRaw.replace(/[🔴🟡🟢]\s*/g, '').trim();
                 const style = SEVERITY_STYLES[sev] || SEVERITY_STYLES.Medium;
                 return (
                   <div key={i} style={{ marginBottom: i < scanResult.results.length - 1 ? '12px' : 0 }}>
-                    <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text-primary)', margin: '0 0 8px' }}>
+                    <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.25rem', fontWeight: 800, color: '#1A2B1A', margin: '0 0 8px' }}>
                       {det.pest || det.class}
                     </h3>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ background: '#FEF3C7', color: '#92400E', fontSize: '0.78rem', fontWeight: 600, padding: '3px 10px', borderRadius: '20px' }}>
-                        {Math.round((det.confidence || 0) * 100)}% Confidence
-                      </span>
                       <span style={{ background: style.bg, color: style.text, fontSize: '0.78rem', fontWeight: 600, padding: '3px 10px', borderRadius: '20px' }}>
                         ● {sev} Severity
                       </span>
@@ -230,30 +263,30 @@ const ScanPage = () => {
 
           {/* ── Treatment Plan ────────────────────────────────────────── */}
           {hasPests && scanResult.suggestions?.length > 0 && (
-            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', padding: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-              <h4 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 16px' }}>
+            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #E5E7EB', padding: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+              <h4 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, color: '#1A2B1A', margin: '0 0 16px' }}>
                 <AlertCircle size={18} color="#F59E0B" /> Treatment Recommendations
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {scanResult.suggestions.map((tip, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '10px', padding: '12px 14px', background: 'var(--color-bg-primary)', borderRadius: '10px' }}>
-                    <span style={{ color: 'var(--color-accent-primary)', fontWeight: 700, flexShrink: 0 }}>✓</span>
-                    <span style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)', lineHeight: 1.5 }}>{tip}</span>
+                  <div key={i} style={{ display: 'flex', gap: '10px', padding: '12px 14px', background: '#F9FAFB', borderRadius: '10px' }}>
+                    <span style={{ color: '#1A7A40', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    <span style={{ fontSize: '0.875rem', color: '#1A2B1A', lineHeight: 1.5 }}>{tip}</span>
                   </div>
                 ))}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
                 <button
                   onClick={handleChatHandoff}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-accent-primary)', border: '2px solid var(--color-accent-primary)', borderRadius: '12px', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(26,122,64,0.1)' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-section-header-bg)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-bg-primary)'; e.currentTarget.style.transform = 'none'; }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '13px', background: '#fff', color: '#1A7A40', border: '2px solid #1A7A40', borderRadius: '12px', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(26,122,64,0.1)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#F0FDF4'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'none'; }}
                 >
                   <MessageCircle size={18} /> Chat with AI Expert about this
                 </button>
                 <button
                   onClick={clearImage}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '13px', background: 'transparent', color: 'var(--color-text-secondary)', border: 'none', borderRadius: '12px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '13px', background: 'transparent', color: '#6B7280', border: 'none', borderRadius: '12px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
@@ -267,36 +300,59 @@ const ScanPage = () => {
         {/* ── RIGHT COLUMN ──────────────────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-          {/* Recent Scans */}
+          {/* Recent Scans — from real YOLO detections */}
           <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', padding: '20px', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <History size={17} color="var(--color-accent-primary)" /> Recent Scans
+              <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1rem', fontWeight: 700, color: '#1A2B1A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <History size={17} color="#1A7A40" /> Recent Scans
               </h3>
-              <button style={{ fontSize: '0.8rem', color: 'var(--color-accent-primary)', fontWeight: 600, border: 'none', background: 'none', cursor: 'pointer' }}>See All</button>
+              {scanHistory.length > 0 && (
+                <button
+                  onClick={clearHistory}
+                  style={{ fontSize: '0.75rem', color: '#8A9A8A', fontWeight: 600, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#DC2626'}
+                  onMouseLeave={e => e.currentTarget.style.color = '#8A9A8A'}
+                >
+                  <Trash2 size={13} /> Clear
+                </button>
+              )}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {mockHistory.map(scan => (
-                <div key={scan.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: 'var(--color-bg-primary)', cursor: 'pointer', transition: 'background 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-section-header-bg)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'var(--color-bg-primary)'}>
-                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: `${scan.color}18`, border: `1.5px solid ${scan.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <ScanLine size={16} color={scan.color} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 600, color: 'var(--color-text-primary)', margin: 0, fontSize: '0.875rem' }}>{scan.name}</p>
-                    <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', margin: '1px 0 0' }}>{scan.date}</p>
-                  </div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-accent-primary)', background: 'var(--color-section-header-bg)', padding: '3px 8px', borderRadius: '8px', flexShrink: 0 }}>{scan.confidence}%</span>
+            {scanHistory.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 12px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                  <ScanLine size={22} color="#9CA3AF" />
                 </div>
-              ))}
-            </div>
+                <p style={{ fontWeight: 600, color: '#6B7280', fontSize: '0.875rem', margin: '0 0 4px' }}>No scans yet</p>
+                <p style={{ color: '#9CA3AF', fontSize: '0.78rem', margin: 0 }}>Upload a crop photo and scan to start building your history</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {scanHistory.slice(0, 5).map(scan => {
+                  const sevColors = { High: '#DC2626', Medium: '#F59E0B', Low: '#22C55E' };
+                  const color = sevColors[scan.severity] || '#F59E0B';
+                  return (
+                    <div key={scan.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', background: '#F9FAFB', transition: 'background 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#F0FDF4'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#F9FAFB'}>
+                      <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: `${color}18`, border: `1.5px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <ScanLine size={16} color={color} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontWeight: 600, color: '#1A2B1A', margin: 0, fontSize: '0.875rem' }}>{scan.name}</p>
+                        <p style={{ color: '#6B7280', fontSize: '0.75rem', margin: '1px 0 0' }}>{scan.date}</p>
+                      </div>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: color, background: `${color}15`, padding: '3px 8px', borderRadius: '8px', flexShrink: 0 }}>{scan.severity}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* How it Works */}
           <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', padding: '20px', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
-            <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Info size={16} color="var(--color-accent-primary)" /> How It Works
+            <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1rem', fontWeight: 700, color: '#1A2B1A', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Info size={16} color="#1A7A40" /> How It Works
             </h3>
             {[
               { n: 1, title: 'Upload Photo', desc: 'Click a clear image of your affected crop' },
@@ -306,8 +362,8 @@ const ScanPage = () => {
               <div key={step.n} style={{ display: 'flex', gap: '14px', marginBottom: '14px', alignItems: 'flex-start' }}>
                 <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg,#1A7A40,#2D8F55)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem', flexShrink: 0 }}>{step.n}</div>
                 <div>
-                  <p style={{ fontWeight: 600, color: 'var(--color-text-primary)', margin: '0 0 2px', fontSize: '0.875rem' }}>{step.title}</p>
-                  <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.78rem', margin: 0 }}>{step.desc}</p>
+                  <p style={{ fontWeight: 700, color: '#1A2B1A', margin: '0 0 2px', fontSize: '0.875rem' }}>{step.title}</p>
+                  <p style={{ color: '#5F6B5F', fontSize: '0.78rem', margin: 0 }}>{step.desc}</p>
                 </div>
               </div>
             ))}

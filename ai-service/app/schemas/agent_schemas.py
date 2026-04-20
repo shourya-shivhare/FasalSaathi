@@ -107,6 +107,10 @@ class CropRecommendationResponse(BaseModel):
 
 class AgentPipelineRequest(BaseModel):
     """Input for the full agent orchestration pipeline."""
+    # Query for dynamic agent routing
+    user_query: Optional[str] = Field(None, description="Natural language input to decide which agents to run")
+    previous_analysis_context: Optional[Dict[str, Any]] = Field(None, description="Past crops or schemes already generated")
+
     # User identity
     user_id: Optional[str] = None
 
@@ -151,3 +155,10 @@ class AgentPipelineResponse(BaseModel):
     summary: str = Field(
         ..., description="Final natural-language summary for the farmer"
     )
+
+class PlannerResponse(BaseModel):
+    """Output from the Planner Agent indicating which agents to execute."""
+    agents: List[str]
+    priority: List[str]
+    reasoning: str
+

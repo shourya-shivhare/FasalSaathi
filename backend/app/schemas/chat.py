@@ -11,6 +11,7 @@ class ChatRequest(BaseModel):
     messages: List[Message]
     session_id: str | None = None
     context: dict | None = None
+    analysis_context: dict | None = None
 
 
 class ChatResponse(BaseModel):

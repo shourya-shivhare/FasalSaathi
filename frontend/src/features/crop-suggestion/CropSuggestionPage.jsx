@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api.jsx';
 import { useUserStore } from '../../stores/useUserStore.jsx';
+import { useChatStore } from '../../stores/useChatStore.jsx';
+import { useResultsStore } from '../../stores/useResultsStore.jsx';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -57,14 +59,25 @@ export const CropSuggestionPage = () => {
     Array.isArray(farmer?.crops_grown) ? farmer.crops_grown.join(', ') : (farmer?.crops_grown || '')
   );
 
-  // Results
-  const [crops, setCrops] = useState([]);
-  const [summary, setSummary] = useState('');
-  const [pestNote, setPestNote] = useState('');
+  const previousCrops = useChatStore((s) => s.analysisContext?.crops);
+
+  // Persisted results store
+  const { cropResults, setCropResults } = useResultsStore();
+
+  // Results — initialize from persisted store, fall back to analysisContext
+  const [crops, setCrops] = useState(
+    cropResults.hasSearched ? cropResults.crops : (previousCrops?.recommended_crops || [])
+  );
+  const [summary, setSummary] = useState(
+    cropResults.hasSearched ? cropResults.summary : (previousCrops?.reasoning_summary || '')
+  );
+  const [pestNote, setPestNote] = useState(
+    cropResults.hasSearched ? cropResults.pestNote : (previousCrops?.pest_considerations || '')
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expandedIdx, setExpandedIdx] = useState(null);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [hasSearched, setHasSearched] = useState(cropResults.hasSearched || !!previousCrops);
 
   const handleSearch = async () => {
     if (!state) { setError('Please select a state'); return; }
@@ -86,6 +99,16 @@ export const CropSuggestionPage = () => {
       setCrops(data.recommended_crops || []);
       setSummary(data.reasoning_summary || '');
       setPestNote(data.pest_considerations || '');
+      
+      // Persist results to store (survives navigation)
+      setCropResults({
+        crops: data.recommended_crops || [],
+        summary: data.reasoning_summary || '',
+        pestNote: data.pest_considerations || '',
+      });
+      
+      // Share context with Chatbot
+      useChatStore.getState().setAnalysisContext({ crop_recommendations: data });
     } catch (err) {
       setError(err.message || 'Failed to fetch crop recommendations');
     } finally {

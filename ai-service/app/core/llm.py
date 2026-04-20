@@ -33,7 +33,11 @@ def safe_llm_invoke(llm, prompt, fallback: str = "I'm sorry, I'm temporarily una
     for attempt in range(MAX_RETRIES):
         try:
             response = llm.invoke(prompt)
-            return response.content
+            content = response.content
+            if isinstance(content, list):
+                # Join text blocks if content is a list
+                content = "".join(str(block.get("text", "")) if isinstance(block, dict) else str(block) for block in content)
+            return str(content)
         except Exception as e:
             err_str = str(e).lower()
             is_quota_error = any(kw in err_str for kw in [
