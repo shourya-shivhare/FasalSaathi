@@ -1,7 +1,7 @@
 // src/stores/useChatStore.jsx
 // Connects to the real FasalSaathi AI service via the backend proxy.
+// In-memory store: survives SPA navigation but clears on browser refresh.
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
@@ -15,23 +15,17 @@ function getAccessToken() {
   } catch { return null; }
 }
 
-// ── session ID persisted across page refreshes ─────────────────────────────
-function getOrCreateSessionId() {
-  let sid = localStorage.getItem('fasalsaathi_session_id');
-  if (!sid) {
-    sid = `sess-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    localStorage.setItem('fasalsaathi_session_id', sid);
-  }
-  return sid;
+// ── session ID — fresh on every page load ──────────────────────────────────
+function createSessionId() {
+  return `sess-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export const useChatStore = create(
-  persist(
-    (set, get) => ({
+  (set, get) => ({
   messages: [],          // { role: 'user'|'assistant', content: string, id: string }
   isThinking: false,
   isListening: false,
-  sessionId: getOrCreateSessionId(),
+  sessionId: createSessionId(),
   analysisContext: null, // Orchestrator output: { crops, schemes, summary }
 
   // ── Set analysis context from orchestrator pipeline output ────────────────
@@ -125,7 +119,6 @@ export const useChatStore = create(
 
         // Update session ID if the server returned a new one
         if (data.session_id && data.session_id !== sessionId) {
-          localStorage.setItem('fasalsaathi_session_id', data.session_id);
           set({ sessionId: data.session_id });
         }
       }
@@ -178,8 +171,7 @@ export const useChatStore = create(
     };
 
     // Start a fresh session for this scan handoff
-    const newSid = `sess-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    localStorage.setItem('fasalsaathi_session_id', newSid);
+    const newSid = createSessionId();
     set({ messages: [secretMsg], isThinking: true, sessionId: newSid });
 
     try {
@@ -205,7 +197,6 @@ export const useChatStore = create(
       const answer = data.answer || 'Maafi chahta hoon, jawab dene mein dikkat aa rahi hai.';
 
       if (data.session_id && data.session_id !== sessionId) {
-        localStorage.setItem('fasalsaathi_session_id', data.session_id);
         set({ sessionId: data.session_id });
       }
 
@@ -231,21 +222,11 @@ export const useChatStore = create(
 
   // ── Clear conversation (new chat) ─────────────────────────────────────────
   clearChat: () => {
-    const newSid = `sess-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    localStorage.setItem('fasalsaathi_session_id', newSid);
+    const newSid = createSessionId();
     set({ messages: [], isThinking: false, sessionId: newSid, analysisContext: null });
   },
 
   // ── Voice listening toggle ────────────────────────────────────────────────
   setListening: (isListening) => set({ isListening }),
-}),
-    {
-      name: 'fasalsaathi-chat',
-      partialize: (s) => ({
-        messages: s.messages,
-        sessionId: s.sessionId,
-        analysisContext: s.analysisContext,
-      }),
-    }
-  )
+})
 );
