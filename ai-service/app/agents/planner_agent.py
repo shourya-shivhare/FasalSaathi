@@ -8,7 +8,7 @@ import json
 import logging
 from typing import Dict, Any
 
-from app.core.llm import get_llm, safe_llm_invoke
+from app.core.llm import get_llm, safe_llm_invoke_async
 from app.schemas.agent_schemas import PlannerResponse
 
 logger = logging.getLogger(__name__)
@@ -147,7 +147,7 @@ async def run_planner_agent(user_query: str, shared_context: Dict[str, Any]) -> 
     )
 
     llm = get_llm(temperature=0.1) # low temp for deterministic JSON
-    raw = safe_llm_invoke(
+    raw = await safe_llm_invoke_async(
         llm,
         prompt_text,
         fallback=_fallback_plan(),

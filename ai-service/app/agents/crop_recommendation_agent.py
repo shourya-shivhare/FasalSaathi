@@ -12,7 +12,7 @@ import json
 import logging
 from typing import Any, Dict
 
-from app.core.llm import get_llm, safe_llm_invoke
+from app.core.llm import get_llm, safe_llm_invoke_async
 from app.schemas.agent_schemas import (
     CropRecommendationRequest,
     CropRecommendationResponse,
@@ -100,7 +100,7 @@ async def run_crop_recommendation_agent(
     )
 
     llm = get_llm(temperature=0.3)
-    raw = safe_llm_invoke(
+    raw = await safe_llm_invoke_async(
         llm,
         prompt_text,
         fallback=_fallback_crops(request.season),

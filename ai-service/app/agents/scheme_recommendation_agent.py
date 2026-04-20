@@ -14,7 +14,7 @@ import json
 import logging
 from typing import Any, Dict, List
 
-from app.core.llm import get_llm, safe_llm_invoke
+from app.core.llm import get_llm, safe_llm_invoke_async
 from app.data.seed_schemes import filter_schemes_by_state, get_all_schemes
 from app.schemas.agent_schemas import (
     MatchedScheme,
@@ -133,7 +133,7 @@ async def run_scheme_recommendation_agent(
     )
 
     llm = get_llm(temperature=0.2)
-    raw = safe_llm_invoke(llm, prompt_text, fallback="__LLM_FAILED__")
+    raw = await safe_llm_invoke_async(llm, prompt_text, fallback="__LLM_FAILED__")
 
     # ── Step 5: Parse and enrich ─────────────────────────────────────────────
     if raw == "__LLM_FAILED__":
