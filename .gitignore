@@ -16,6 +16,7 @@ venv/
 # ── ML / YOLO ─────────────────────────────────────────────────────────────────
 # Trained weights — commit only intentionally (large files)
 *.pt
+!models/best.pt
 *.onnx
 *.engine
 
