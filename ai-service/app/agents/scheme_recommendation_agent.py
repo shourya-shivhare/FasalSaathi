@@ -2,9 +2,9 @@
 Government Scheme Recommendation Agent
 ───────────────────────────────────────
 1. Pre-filters the 25-scheme seed DB by state, category, age, gender, income.
-2. Sends the filtered list + farmer profile to the LLM for ranking and
-   plain-language explanations.
-3. Returns scored, ranked results.
+2. Computes a RULE-BASED base score per scheme (category match, income fit, etc.)
+3. Sends the filtered list + farmer profile to the LLM for ranking refinement.
+4. Blends rule-based + LLM scores for differentiated, robust results.
 
 Independently callable via its own router OR via the orchestrator pipeline.
 """
@@ -14,7 +14,7 @@ import json
 import logging
 from typing import Any, Dict, List
 
-from app.core.llm import get_llm, safe_llm_invoke
+from app.core.llm import get_llm, safe_llm_invoke_async
 from app.data.seed_schemes import filter_schemes_by_state, get_all_schemes
 from app.schemas.agent_schemas import (
     MatchedScheme,
@@ -44,27 +44,40 @@ AVAILABLE SCHEMES (pre-filtered for this farmer's state):
 {schemes_json}
 
 TASK:
-From the schemes listed above, pick the TOP 5-8 most relevant for this farmer.
-For each scheme, provide:
-1. An eligibility_score from 0.0 to 1.0 (how likely the farmer qualifies)
-2. A brief why_recommended (1-2 sentences in simple language explaining why)
+Rank the TOP 5-8 most relevant schemes for this specific farmer.
 
-Return ONLY a JSON array:
+SCORING RUBRIC — use this strictly to assign eligibility_score:
+  0.90–1.00 = PERFECT FIT: Farmer meets ALL criteria, scheme directly addresses their needs
+  0.75–0.89 = STRONG FIT: Farmer meets most criteria, scheme is very relevant
+  0.60–0.74 = MODERATE FIT: Farmer likely qualifies, but scheme is not a core need
+  0.40–0.59 = WEAK FIT: Farmer may qualify on paper, but scheme is not very useful
+  0.20–0.39 = POOR FIT: Farmer barely qualifies or scheme is tangentially relevant
+  <0.20 = DO NOT INCLUDE
+
+DIFFERENTIATION RULES:
+- A {farmer_category} farmer should score HIGHEST on schemes with matching category tags
+- Income-support schemes should rank higher for marginal/small farmers
+- Crop insurance should rank higher if the farmer grows Kharif crops (higher risk season)
+- Equipment/machinery schemes score LOWER for marginal farmers (less practical)
+- State-specific schemes matching the farmer's state should get a BONUS
+- If pest context is available, pest-related schemes should score higher
+- DO NOT give all schemes the same score — spread them across the rubric
+
+Return ONLY a JSON array (no markdown, no explanation):
 [
   {{
-    "scheme_name": "exact name from the list",
-    "eligibility_score": 0.95,
-    "why_recommended": "Simple explanation"
+    "scheme_name": "exact name from the list above",
+    "eligibility_score": 0.93,
+    "why_recommended": "1-2 sentence explanation specific to THIS farmer"
+  }},
+  {{
+    "scheme_name": "another scheme",
+    "eligibility_score": 0.71,
+    "why_recommended": "Different explanation"
   }}
 ]
 
-Rules:
-- Only include schemes the farmer is realistically eligible for
-- Rank by relevance (most useful first)
-- If gender_specific is set, only include if farmer's gender matches
-- Check age_limit constraints
-- Check income_limit if applicable
-- Return ONLY the JSON array, no other text
+CRITICAL: Each scheme MUST have a DIFFERENT score. Spread scores across the 0.40–0.98 range.
 """
 
 
@@ -98,6 +111,9 @@ async def run_scheme_recommendation_agent(
             total_found=0,
             farmer_summary=_build_farmer_summary(request),
         )
+
+    # ── Step 2.5: Compute rule-based scores ──────────────────────────────────
+    rule_scores = _compute_rule_scores(candidates, request)
 
     # ── Step 3: Build extra context from upstream agents ─────────────────────
     extra_lines = []
@@ -133,26 +149,16 @@ async def run_scheme_recommendation_agent(
     )
 
     llm = get_llm(temperature=0.2)
-    raw = safe_llm_invoke(llm, prompt_text, fallback="__LLM_FAILED__")
+    raw = await safe_llm_invoke_async(llm, prompt_text, fallback="__LLM_FAILED__")
 
-    # ── Step 5: Parse and enrich ─────────────────────────────────────────────
+    # ── Step 5: Parse, blend scores, and enrich ──────────────────────────────
     if raw == "__LLM_FAILED__":
-        # LLM unavailable — return top candidates with default scores
-        logger.warning("LLM unavailable, returning pre-filtered candidates as fallback")
-        matched = [
-            MatchedScheme(
-                scheme_name=s["scheme_name"],
-                ministry=s["ministry"],
-                eligibility_score=0.7,
-                benefits=s["benefits"],
-                why_recommended=s["eligibility_criteria"],
-                apply_url=s.get("apply_url", ""),
-                category_tags=s.get("category_tags", []),
-            )
-            for s in candidates[:8]
-        ]
+        # LLM unavailable — use rule-based scores as the sole ranking
+        logger.warning("LLM unavailable, returning rule-based scored candidates as fallback")
+        matched = _build_fallback_results(candidates, rule_scores)
     else:
-        matched = _parse_scheme_response(raw, candidates)
+        matched = _parse_scheme_response(raw, candidates, rule_scores)
+
     matched.sort(key=lambda s: s.eligibility_score, reverse=True)
 
     logger.info("🏛️  Scheme Agent returning %d matches", len(matched))
@@ -162,6 +168,94 @@ async def run_scheme_recommendation_agent(
         total_found=len(matched),
         farmer_summary=_build_farmer_summary(request),
     )
+
+
+# ── Rule-Based Scoring ───────────────────────────────────────────────────────
+
+def _compute_rule_scores(schemes: list[dict], req: SchemeRecommendationRequest) -> dict[str, float]:
+    """
+    Compute a differentiated rule-based score (0.0-1.0) for each scheme.
+    This ensures even without LLM, scores are varied and meaningful.
+    """
+    scores = {}
+    category = req.farmer_category.lower() if req.farmer_category else "marginal"
+
+    for s in schemes:
+        score = 0.50  # Base score (passed all hard filters, so minimally eligible)
+        tags = {t.lower() for t in s.get("category_tags", [])}
+
+        # ── Category match (+0.15) ───────────────────────────────────────
+        if category in tags or "all_farmers" in tags:
+            score += 0.15
+        # Extra bonus if scheme specifically targets this farmer's category
+        if category in tags and "all_farmers" not in tags:
+            score += 0.05  # More targeted = higher score
+
+        # ── Income support bonus for small/marginal farmers (+0.10) ──────
+        if category in ("marginal", "small") and "income_support" in tags:
+            score += 0.10
+
+        # ── Crop relevance (+0.05) ───────────────────────────────────────
+        if req.crop_types:
+            crop_lower = {c.lower() for c in req.crop_types}
+            crop_tags = {"seeds", "pulses", "rice", "wheat", "cereals", "horticulture",
+                         "fruits", "vegetables", "flowers", "spices"}
+            if crop_lower & crop_tags & tags:
+                score += 0.05
+
+        # ── State-specific bonus (+0.08) ─────────────────────────────────
+        if s.get("state_applicability"):  # State-specific scheme
+            score += 0.08
+
+        # ── Practical fit based on farmer category ───────────────────────
+        # Machinery/infrastructure less practical for marginal farmers
+        if category == "marginal" and ("machinery" in tags or "infrastructure" in tags):
+            score -= 0.10
+        # Credit/loan more relevant for small-medium farmers
+        if category in ("small", "semi-medium", "medium") and "credit" in tags:
+            score += 0.05
+
+        # ── Insurance relevance ──────────────────────────────────────────
+        if "crop_insurance" in tags:
+            score += 0.05
+        if "insurance" in tags and not req.age:
+            score += 0.02  # No age = likely young = insurance useful
+
+        # ── Women-specific bonus ─────────────────────────────────────────
+        if req.gender and req.gender.lower() == "female" and "women" in tags:
+            score += 0.10
+
+        # ── Clamp to 0.30–0.98 range ─────────────────────────────────────
+        score = min(max(score, 0.30), 0.98)
+        scores[s["scheme_name"]] = round(score, 2)
+
+    return scores
+
+
+def _build_fallback_results(
+    candidates: list[dict],
+    rule_scores: dict[str, float],
+) -> list[MatchedScheme]:
+    """Build results using only rule-based scores (LLM unavailable)."""
+    # Sort by rule score and take top 8
+    sorted_candidates = sorted(
+        candidates,
+        key=lambda s: rule_scores.get(s["scheme_name"], 0.5),
+        reverse=True,
+    )
+
+    return [
+        MatchedScheme(
+            scheme_name=s["scheme_name"],
+            ministry=s["ministry"],
+            eligibility_score=rule_scores.get(s["scheme_name"], 0.5),
+            benefits=s["benefits"],
+            why_recommended=s["eligibility_criteria"],
+            apply_url=s.get("apply_url", ""),
+            category_tags=s.get("category_tags", []),
+        )
+        for s in sorted_candidates[:8]
+    ]
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -192,8 +286,15 @@ def _hard_filter(schemes: list[dict], req: SchemeRecommendationRequest) -> list[
     return result
 
 
-def _parse_scheme_response(raw: str, candidates: list[dict]) -> list[MatchedScheme]:
-    """Parse LLM JSON and enrich with full scheme data."""
+def _parse_scheme_response(
+    raw: str,
+    candidates: list[dict],
+    rule_scores: dict[str, float],
+) -> list[MatchedScheme]:
+    """
+    Parse LLM JSON and BLEND with rule-based scores for robust ranking.
+    Final score = 0.6 * LLM_score + 0.4 * rule_score
+    """
     # Build lookup by name
     scheme_lookup = {s["scheme_name"].lower(): s for s in candidates}
 
@@ -204,22 +305,12 @@ def _parse_scheme_response(raw: str, candidates: list[dict]) -> list[MatchedSche
             text = text.rsplit("```", 1)[0]
         rankings = json.loads(text)
     except Exception as e:
-        logger.warning("Failed to parse scheme LLM response: %s — using fallback", e)
-        # Fallback: return top 5 candidates with default scores
-        return [
-            MatchedScheme(
-                scheme_name=s["scheme_name"],
-                ministry=s["ministry"],
-                eligibility_score=0.7,
-                benefits=s["benefits"],
-                why_recommended=s["eligibility_criteria"],
-                apply_url=s.get("apply_url", ""),
-                category_tags=s.get("category_tags", []),
-            )
-            for s in candidates[:5]
-        ]
+        logger.warning("Failed to parse scheme LLM response: %s — using rule-based fallback", e)
+        return _build_fallback_results(candidates, rule_scores)
 
     result = []
+    seen_scores = set()
+
     for r in rankings[:8]:
         name = r.get("scheme_name", "")
         full = scheme_lookup.get(name.lower())
@@ -232,10 +323,22 @@ def _parse_scheme_response(raw: str, candidates: list[dict]) -> list[MatchedSche
         if not full:
             continue
 
+        # Blend LLM score with rule-based score
+        llm_score = min(max(float(r.get("eligibility_score", 0.5)), 0.0), 1.0)
+        base_score = rule_scores.get(full["scheme_name"], 0.5)
+        blended = round(0.6 * llm_score + 0.4 * base_score, 2)
+
+        # Ensure no two schemes have the exact same score
+        while blended in seen_scores:
+            blended = round(blended - 0.01, 2)
+        seen_scores.add(blended)
+
+        blended = min(max(blended, 0.10), 0.98)
+
         result.append(MatchedScheme(
             scheme_name=full["scheme_name"],
             ministry=full["ministry"],
-            eligibility_score=min(max(float(r.get("eligibility_score", 0.5)), 0.0), 1.0),
+            eligibility_score=blended,
             benefits=full["benefits"],
             why_recommended=r.get("why_recommended", full["eligibility_criteria"]),
             apply_url=full.get("apply_url", ""),

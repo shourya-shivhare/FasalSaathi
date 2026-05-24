@@ -29,12 +29,16 @@ from typing import Any, Dict
 from app.agents.crop_recommendation_agent import run_crop_recommendation_agent
 from app.agents.scheme_recommendation_agent import run_scheme_recommendation_agent
 from app.agents.planner_agent import run_planner_agent
+from app.agents.market_intelligence_agent import run_market_intelligence_agent
 from app.schemas.agent_schemas import (
     AgentPipelineRequest,
     AgentPipelineResponse,
     AgentStepResult,
     CropRecommendationRequest,
     CropRecommendationResponse,
+    MarketIntelligenceRequest,
+    MarketIntelligenceResponse,
+    PlannerResponse,
     SchemeRecommendationRequest,
     SchemeRecommendationResponse,
 )
@@ -70,6 +74,7 @@ class AgentOrchestrator:
         shared_context: Dict[str, Any] = request.previous_analysis_context.copy() if request.previous_analysis_context else {}
         steps: list[AgentStepResult] = []
         crop_response: CropRecommendationResponse | None = None
+        market_response: MarketIntelligenceResponse | None = None
         scheme_response: SchemeRecommendationResponse | None = None
 
         # ── Step 0: Dynamic Agent Planning ───────────────────────────────────
@@ -139,6 +144,51 @@ class AgentOrchestrator:
         else:
             logger.info("  ⏭️ Skipping Crop Agent per Planner decision.")
 
+        # ── Step 2.5: Market Intelligence Agent ───────────────────────────────
+        if "market" in plan.agents:
+            try:
+                # Use the first recommended crop if available, otherwise use request crop_types
+                commodity = "Wheat"  # default
+                if crop_response and crop_response.recommended_crops:
+                    commodity = crop_response.recommended_crops[0].crop_name
+                elif request.crop_types:
+                    commodity = request.crop_types[0]
+
+                market_req = MarketIntelligenceRequest(
+                    commodity=commodity,
+                    state=request.state,
+                    district=request.district,
+                )
+                market_response = await run_market_intelligence_agent(market_req)
+
+                shared_context["market_analysis"] = {
+                    "commodity": market_response.commodity,
+                    "modal_price": market_response.current_market_analysis.modal_price,
+                    "selling_recommendation": market_response.selling_recommendation,
+                    "risk_level": market_response.risk_level,
+                }
+
+                steps.append(AgentStepResult(
+                    agent_name="market_intelligence_agent",
+                    success=True,
+                    data={
+                        "commodity": market_response.commodity,
+                        "modal_price": market_response.current_market_analysis.modal_price,
+                        "sentiment": market_response.current_market_analysis.market_sentiment,
+                    },
+                ))
+                logger.info("  ✅ Market Agent: %s @ %s", commodity, market_response.current_market_analysis.modal_price)
+
+            except Exception as e:
+                logger.error("  ❌ Market Agent failed: %s", e)
+                steps.append(AgentStepResult(
+                    agent_name="market_intelligence_agent",
+                    success=False,
+                    error=str(e),
+                ))
+        else:
+            logger.info("  ⏭️ Skipping Market Agent per Planner decision.")
+
         # ── Step 3: Scheme Recommendation Agent ──────────────────────────────
         if "scheme" in plan.agents:
             try:
@@ -176,13 +226,14 @@ class AgentOrchestrator:
             logger.info("  ⏭️ Skipping Scheme Agent per Planner decision.")
 
         # ── Step 4: Build unified summary ────────────────────────────────────
-        summary = self._build_summary(request, plan, crop_response, scheme_response)
+        summary = self._build_summary(request, plan, crop_response, market_response, scheme_response)
         logger.info("═══ Pipeline %s complete ═══", pipeline_id)
 
         return AgentPipelineResponse(
             pipeline_id=pipeline_id,
             steps=steps,
             crop_recommendations=crop_response,
+            market_analysis=market_response,
             scheme_recommendations=scheme_response,
             summary=summary,
         )
@@ -194,6 +245,7 @@ class AgentOrchestrator:
         req: AgentPipelineRequest,
         plan: PlannerResponse,
         crops: CropRecommendationResponse | None,
+        market: MarketIntelligenceResponse | None,
         schemes: SchemeRecommendationResponse | None,
     ) -> str:
         """Generate a farmer-friendly plain-language summary."""
@@ -208,6 +260,16 @@ class AgentOrchestrator:
             parts.append("🌱 Crop recommendations were not requested.")
         else:
             parts.append("🌱 Crop recommendations could not be generated at this time.")
+
+        if market and market.current_market_analysis:
+            parts.append(
+                f"💰 {market.commodity} is trading at {market.current_market_analysis.modal_price}. "
+                f"{market.selling_recommendation}"
+            )
+        elif "market" not in plan.agents:
+            parts.append("💰 Market analysis was not requested.")
+        else:
+            parts.append("💰 Market analysis could not be generated at this time.")
 
         if schemes and schemes.matched_schemes:
             scheme_names = ", ".join(s.scheme_name for s in schemes.matched_schemes[:3])

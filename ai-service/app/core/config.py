@@ -26,6 +26,14 @@ class Settings(BaseSettings):
     YOLO_CONF_THRESHOLD: float = 0.35
     YOLO_OUTPUT_DIR: str = "outputs/detections"
 
+    # Market Intelligence APIs
+    AGMARKNET_API_KEY: str = ""
+    AGMARKNET_BASE_URL: str = "https://api.data.gov.in"
+    AGMARKNET_RESOURCE_ID: str = "9ef84268-d588-465a-a308-a864a43d0070"
+    OPENWEATHER_API_KEY: str = ""
+    OPENWEATHER_BASE_URL: str = "https://api.openweathermap.org/data/2.5"
+    MARKET_CACHE_TTL_SECONDS: int = 60
+
     class Config:
         env_file = ".env"
         case_sensitive = True

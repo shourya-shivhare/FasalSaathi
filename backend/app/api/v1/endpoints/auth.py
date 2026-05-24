@@ -4,7 +4,12 @@ from app.db.database import SessionLocal
 from app.api import deps
 from app.models.user import User
 from app.schemas.auth import LoginRequest, TokenResponse, RegisterRequest
-from app.core.security import verify_password, get_password_hash, create_access_token
+from app.core.security import (
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    validate_password_length,
+)
 
 router = APIRouter()
 
@@ -17,6 +22,11 @@ def register(payload: RegisterRequest, db: Session = Depends(deps.get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User with this email already exists"
         )
+    
+    try:
+        validate_password_length(payload.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     
     # Hash password
     hashed_password = get_password_hash(payload.password)
@@ -40,12 +50,15 @@ def register(payload: RegisterRequest, db: Session = Depends(deps.get_db)):
 def login(payload: LoginRequest, db: Session = Depends(deps.get_db)):
     # Authenticate user
     db_user = db.query(User).filter(User.email == payload.email).first()
-    if not db_user or not verify_password(payload.password, db_user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    try:
+        if not db_user or not verify_password(payload.password, db_user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     
     if not db_user.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
