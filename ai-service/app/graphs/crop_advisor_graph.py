@@ -133,7 +133,7 @@ def market_worker(state: AdvisorState) -> AdvisorState:
             input=user_query,
             context=context
         ),
-        fallback=f"Current market information: {prices}"
+        fallback=f"Market & Scheme Info: {prices}"
     )
     return {
         **state,

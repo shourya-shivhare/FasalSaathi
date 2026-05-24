@@ -102,6 +102,58 @@ class CropRecommendationResponse(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# MARKET INTELLIGENCE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class MarketIntelligenceRequest(BaseModel):
+    """Input for the Market Intelligence Agent."""
+    commodity: str = Field(..., description="Crop name, e.g. 'Wheat'")
+    state: str = Field(..., description="Indian state")
+    district: Optional[str] = None
+    market: Optional[str] = None
+
+
+class MarketLocation(BaseModel):
+    """Location details for market analysis."""
+    state: str
+    district: str = ""
+    market: str = ""
+
+
+class CurrentMarketAnalysis(BaseModel):
+    """Price snapshot and trend summary."""
+    modal_price: str
+    min_price: str
+    max_price: str
+    price_trend: str
+    market_sentiment: str
+
+
+class NearbyMarket(BaseModel):
+    """A nearby mandi with its price for comparison."""
+    market_name: str
+    district: str
+    modal_price: int
+    min_price: int
+    max_price: int
+
+
+class MarketIntelligenceResponse(BaseModel):
+    """Output from the Market Intelligence Agent."""
+    commodity: str
+    location: MarketLocation
+    current_market_analysis: CurrentMarketAnalysis
+    weather_impact: str
+    arrival_analysis: str
+    selling_recommendation: str
+    risk_level: str = Field(..., description="LOW / MODERATE / HIGH")
+    short_term_outlook: str
+    reasoning: List[str]
+    confidence_score: float = Field(..., ge=0.0, le=1.0)
+    nearby_markets: List[NearbyMarket] = Field(default_factory=list)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ORCHESTRATOR — FULL PIPELINE
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -151,6 +203,7 @@ class AgentPipelineResponse(BaseModel):
     pipeline_id: str
     steps: List[AgentStepResult]
     crop_recommendations: Optional[CropRecommendationResponse] = None
+    market_analysis: Optional[MarketIntelligenceResponse] = None
     scheme_recommendations: Optional[SchemeRecommendationResponse] = None
     summary: str = Field(
         ..., description="Final natural-language summary for the farmer"

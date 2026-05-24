@@ -29,7 +29,12 @@ Your role is to **analyze the farmer's query and decide which agents should be e
 2. crop
    - Recommends suitable crops based on farmer conditions (soil, season, location, pest context)
 
-3. scheme
+3. market
+   - Fetches real mandi prices from AGMARKNET
+   - Analyzes price trends, volatility, and weather impact
+   - Provides sell/hold recommendations
+
+4. scheme
    - Suggests relevant government schemes, subsidies, or financial assistance
    - Uses crop recommendations and farmer profile for personalization
 
@@ -64,7 +69,13 @@ Include "crop" if:
 - OR pest is present and crop decision depends on it
 - OR no crop recommendations exist in shared_context
 
-### 3. Scheme Agent
+### 3. Market Agent
+Include "market" if:
+- Query mentions price, mandi, sell, buy, MSP, market, rate, cost
+- OR crops are recommended and price comparison is relevant
+- OR farmer asks about best time to sell
+
+### 4. Scheme Agent
 Include "scheme" if:
 - Query mentions subsidy, loan, insurance, government help
 - OR crops are recommended and financial support is relevant
@@ -74,6 +85,8 @@ Include "scheme" if:
 
 ## 🔗 Dependency Awareness
 - pest -> influences crop (avoid pest-susceptible crops)
+- crop -> influences market (prices depend on crop choices)
+- market -> influences scheme (financial support may be relevant if prices are low)
 - crop -> influences scheme (schemes depend on crop choices)
 
 If multiple needs are present, include ALL relevant agents.
@@ -84,7 +97,8 @@ If multiple needs are present, include ALL relevant agents.
 Always follow this strict order if running multiple:
 1. pest
 2. crop
-3. scheme
+3. market
+4. scheme
 
 Only include agents that are necessary.
 
@@ -101,8 +115,8 @@ Only include agents that are necessary.
 ## 📤 Output Format
 
 {{
-  "agents": ["pest", "crop", "scheme"],
-  "priority": ["pest", "crop", "scheme"],
+  "agents": ["pest", "crop", "market", "scheme"],
+  "priority": ["pest", "crop", "market", "scheme"],
   "reasoning": "clear and short explanation based on query and context"
 }}
 
@@ -118,8 +132,8 @@ Only include agents that are necessary.
 def _fallback_plan() -> str:
     """Fallback plan if the LLM fails."""
     return json.dumps({
-        "agents": ["pest", "crop", "scheme"],
-        "priority": ["pest", "crop", "scheme"],
+        "agents": ["pest", "crop", "market", "scheme"],
+        "priority": ["pest", "crop", "market", "scheme"],
         "reasoning": "Fallback to running all agents due to LLM error."
     })
 
@@ -134,8 +148,8 @@ async def run_planner_agent(user_query: str, shared_context: Dict[str, Any]) -> 
         # Default to running all if no query is provided (legacy mode)
         logger.info("🧠 No user query, defaulting to full sequential pipeline.")
         return PlannerResponse(
-            agents=["pest", "crop", "scheme"],
-            priority=["pest", "crop", "scheme"],
+            agents=["pest", "crop", "market", "scheme"],
+            priority=["pest", "crop", "market", "scheme"],
             reasoning="No query provided; running default sequential pipeline."
         )
 
@@ -169,7 +183,7 @@ async def run_planner_agent(user_query: str, shared_context: Dict[str, Any]) -> 
     except Exception as e:
         logger.error("🧠 Failed to parse Planner output: %s. Falling back to all.", e)
         return PlannerResponse(
-            agents=["pest", "crop", "scheme"],
-            priority=["pest", "crop", "scheme"],
+            agents=["pest", "crop", "market", "scheme"],
+            priority=["pest", "crop", "market", "scheme"],
             reasoning="Parse failure fallback."
         )

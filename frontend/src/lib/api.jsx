@@ -84,27 +84,52 @@ export const api = {
   },
 
 
-  // ── Market prices — enriched static data (no public mandi API) ─────────
-  async getMarketPrices(crop = 'Wheat') {
-    const prices = {
-      Wheat:  { base: 2275, msp: 2150 },
-      Rice:   { base: 2183, msp: 2183 },
-      Maize:  { base: 1962, msp: 1875 },
-      Cotton: { base: 6380, msp: 6025 },
-      Soybean:{ base: 4600, msp: 4300 },
-    };
-    const p = prices[crop] || prices.Wheat;
-    const jitter = Math.round((Math.random() - 0.5) * 80);
-    const current = p.base + jitter;
-    const change = ((jitter / p.base) * 100).toFixed(1);
-    return {
-      currentPrice: current,
-      mspPrice: p.msp,
-      trend: jitter >= 0 ? 'up' : 'down',
-      change,
-      mandiName: 'Narela Mandi',
-      distance: 8,
-    };
+  // ── Market Intelligence — real AGMARKNET + AI analysis ─────────
+  async getMarketAnalysis(commodity, state, district) {
+    try {
+      return await fetchJSON(`${API_BASE}/market/analysis`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commodity, state, district }),
+      });
+    } catch {
+      return null; // caller handles fallback
+    }
+  },
+
+  async getMarketPrices(commodity, state, district) {
+    try {
+      const params = new URLSearchParams({ commodity });
+      if (state) params.append('state', state);
+      if (district) params.append('district', district);
+      return await fetchJSON(`${API_BASE}/market/prices?${params}`);
+    } catch {
+      // Fallback to enriched static data
+      const prices = {
+        Wheat:  { base: 2275, msp: 2150 },
+        Rice:   { base: 2183, msp: 2183 },
+        Maize:  { base: 1962, msp: 1875 },
+        Cotton: { base: 6380, msp: 6025 },
+        Soybean:{ base: 4600, msp: 4300 },
+      };
+      const p = prices[commodity] || prices.Wheat;
+      const jitter = Math.round((Math.random() - 0.5) * 80);
+      const current = p.base + jitter;
+      return {
+        commodity,
+        count: 1,
+        records: [{
+          state: state || 'Delhi',
+          district: district || '',
+          market: 'Local Mandi',
+          commodity,
+          modal_price: current,
+          min_price: current - 100,
+          max_price: current + 100,
+          arrival_date: new Date().toLocaleDateString('en-IN'),
+        }],
+      };
+    }
   },
 
   // ── Schemes — enriched static data ─────────────────────────────────────
