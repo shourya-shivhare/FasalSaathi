@@ -32,6 +32,23 @@ ai-service/eval_results.txt
 # Compressed dataset archive
 data.zip
 
+# Previous / archived implementation code
+archive/
+ai-service/archive/
+archieve/
+legacy/
+
+# ── SQLite databases (runtime) ────────────────────────────────────────────────
+*.db
+!*.db.example
+
+# ── Uploads (user images, cleaned by TTL) ─────────────────────────────────────
+uploads/*
+!uploads/.gitkeep
+
+# ── ChromaDB ──────────────────────────────────────────────────────────────────
+chroma_db/
+
 # ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

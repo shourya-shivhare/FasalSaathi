@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, File, Form, UploadFile
 import httpx
 from typing import Optional
 from app.core.config import settings
@@ -44,4 +44,54 @@ async def chat(
         raise HTTPException(
             status_code=503,
             detail=f"AI service unavailable — make sure it is running on port 8001. ({type(exc).__name__})",
+        )
+
+
+@router.post("/upload")
+async def chat_with_image(
+    message: str = Form(""),
+    session_id: str = Form(None),
+    state: str = Form(""),
+    district: str = Form(""),
+    farmer_category: str = Form("marginal"),
+    soil_type: str = Form("Loamy"),
+    season: str = Form("Kharif"),
+    image: UploadFile = File(None),
+    current_user: Optional[User] = Depends(deps.get_optional_current_user),
+):
+    """Proxy multipart chat+image upload to the AI service."""
+    url = f"{settings.AI_SERVICE_URL}/api/chat/upload"
+
+    # Enrich with user profile if logged in
+    if current_user:
+        state = state or current_user.state or ""
+        district = district or current_user.district or ""
+
+    # Build multipart form data
+    form_data = {
+        "message": message,
+        "session_id": session_id or "",
+        "state": state,
+        "district": district,
+        "farmer_category": farmer_category,
+        "soil_type": soil_type,
+        "season": season,
+    }
+
+    files = None
+    if image and image.filename:
+        content = await image.read()
+        files = {"image": (image.filename, content, image.content_type or "image/jpeg")}
+
+    try:
+        async with httpx.AsyncClient(timeout=90.0, follow_redirects=True) as client:
+            resp = await client.post(url, data=form_data, files=files)
+            resp.raise_for_status()
+            return resp.json()
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=exc.response.status_code, detail=exc.response.text)
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"AI service unavailable: {type(exc).__name__}",
         )
