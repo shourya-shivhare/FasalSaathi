@@ -60,6 +60,18 @@ async def startup():
         logging.getLogger("main").warning("Startup cleanup failed: %s", e)
 
 
+@app.on_event("shutdown")
+async def shutdown():
+    """Close active database connections on shutdown."""
+    try:
+        from app.graph.checkpoints import close_async_checkpointer
+        await close_async_checkpointer()
+        logging.getLogger("main").info("📁 Closed checkpoints database connection.")
+    except Exception as e:
+        logging.getLogger("main").warning("Shutdown cleanup failed: %s", e)
+
+
+
 @app.get("/", tags=["Health"])
 def health():
     return {

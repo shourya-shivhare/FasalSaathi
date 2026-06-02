@@ -94,6 +94,9 @@ def compute_graph_score(
     planned = set(plan.get("agents", []))
     requested = set(state.get("sub_intents", []))
 
+    if not planned:
+        return 0.0
+
     # Relevance (0.45)
     if planned:
         relevance = len(planned & requested) / max(len(planned), 1)

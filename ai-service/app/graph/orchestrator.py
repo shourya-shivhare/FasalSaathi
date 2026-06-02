@@ -92,8 +92,8 @@ def build_graph(checkpointer=None) -> StateGraph:
         },
     )
 
-    # greeting → observability
-    graph.add_edge("greeting", "observability")
+    # greeting → memory_persist → observability → END
+    graph.add_edge("greeting", "memory_persist")
 
     # conversational → memory_persist
     graph.add_edge("conversational", "memory_persist")
@@ -179,14 +179,26 @@ def build_graph(checkpointer=None) -> StateGraph:
 
 
 # ── Module-level singleton ───────────────────────────────────────────────────
-# Lazy initialized on first import via create_orchestrator()
+# Lazy initialized on first call via get_orchestrator()
 
 _compiled_graph = None
+_compiled_loop = None
 
 
-def get_orchestrator():
+async def get_orchestrator():
     """Get or create the compiled orchestrator graph."""
-    global _compiled_graph
-    if _compiled_graph is None:
-        _compiled_graph = build_graph()
+    global _compiled_graph, _compiled_loop
+    import asyncio
+    try:
+        current_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        current_loop = None
+
+    if _compiled_graph is None or _compiled_loop != current_loop:
+        from app.graph.checkpoints import get_async_checkpointer
+        checkpointer = await get_async_checkpointer()
+        _compiled_graph = build_graph(checkpointer=checkpointer)
+        _compiled_loop = current_loop
     return _compiled_graph
+
+

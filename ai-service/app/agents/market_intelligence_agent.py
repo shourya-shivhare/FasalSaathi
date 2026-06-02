@@ -15,7 +15,7 @@ from typing import Any, Dict
 
 from app.core.llm import get_llm, safe_llm_invoke_async
 from app.tools.agmarknet_client import fetch_mandi_prices, fetch_nearby_markets
-from app.tools.openweather_client import fetch_current_weather, fetch_forecast_5day
+from app.tools.weather_client import fetch_current_weather, fetch_forecast_5day
 from app.tools.trend_analysis import compute_price_trend, compute_market_sentiment
 from app.tools.forecasting import predict_short_term, compute_confidence_score
 from app.schemas.agent_schemas import (
