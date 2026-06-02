@@ -173,7 +173,7 @@ async def _invoke_graph(initial_state: dict, session_id: str) -> ChatResponse:
     }
 
     try:
-        graph = get_orchestrator()
+        graph = await get_orchestrator()
         result = await graph.ainvoke(initial_state, config=config)
 
         answer = result.get("final_response", "")
