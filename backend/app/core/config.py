@@ -12,7 +12,13 @@ class Settings(BaseSettings):
 
     # Security
     SECRET_KEY: str = "changeme-in-production"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # 15 minutes for production-grade security
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7    # 7 days rotation window
+
+    # Twilio Verify
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_VERIFY_SERVICE_SID: str = ""
 
     # CORS
     ALLOWED_ORIGINS: List[str] = [
@@ -24,7 +30,9 @@ class Settings(BaseSettings):
     AI_SERVICE_URL: str = "http://localhost:8001"
 
     class Config:
-        env_file = ".env"
+        import os
+        from pathlib import Path
+        env_file = str(Path(__file__).resolve().parent.parent.parent / ".env")
         case_sensitive = True
 
 

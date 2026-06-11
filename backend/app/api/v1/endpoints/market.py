@@ -6,9 +6,9 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Optional
 import httpx
 
-from app.core.config import settings
-from app.api import deps
-from app.models.user import User
+from backend.app.core.config import settings
+from backend.app.api import deps
+from backend.app.models.user import User
 
 router = APIRouter()
 
@@ -23,8 +23,9 @@ async def market_analysis(
     """Proxy to AI service market intelligence agent."""
     # Enrich with user profile if logged in
     if current_user:
-        payload.setdefault("state", current_user.state or "")
-        payload.setdefault("district", current_user.district or "")
+        _fp = current_user.farmer_profile
+        payload.setdefault("state", (_fp.state if _fp else "") or "")
+        payload.setdefault("district", (_fp.district if _fp else "") or "")
 
     url = f"{settings.AI_SERVICE_URL}/api/v1/market/analysis"
     try:

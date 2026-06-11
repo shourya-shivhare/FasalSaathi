@@ -135,6 +135,6 @@ class FasalSaathiState(TypedDict):
 ---
 
 ## Code References
-- Chat router: [chat.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/routers/chat.py)
-- Agent pipeline router: [agents.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/routers/agents.py)
-- State schema definition: [state.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/graph/state.py)
+- Chat router: [chat.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/routers/chat.py)
+- Agent pipeline router: [agents.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/routers/agents.py)
+- State schema definition: [state.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/graph/state.py)

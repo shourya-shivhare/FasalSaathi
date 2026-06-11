@@ -9,35 +9,46 @@ Returns: JSON with detected pests, confidence scores, and treatment suggestions.
 import sys
 import tempfile
 import uuid
+import io
 from pathlib import Path
-from typing import Any
-
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
-from fastapi.responses import JSONResponse
+from typing import Any, Optional
+from PIL import Image, UnidentifiedImageError
+from sqlalchemy.exc import SQLAlchemyError
+import sys
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Path plumbing — make ai-service importable from the backend
+# Resolve weights path
 # ---------------------------------------------------------------------------
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent.parent
-# backend/app/api/v1/endpoints/detect.py → 6 parents up = project root
-_AI_SERVICE_DIR = _PROJECT_ROOT / "ai-service"
+_AI_SERVICE_DIR = _PROJECT_ROOT / "ai_service"
+WEIGHTS_PATH = _AI_SERVICE_DIR / "models" / "best.pt"
 
-if str(_AI_SERVICE_DIR) not in sys.path:
-    sys.path.append(str(_AI_SERVICE_DIR))
-
-# ---------------------------------------------------------------------------
-# Internal imports (from ai-service)
-# ---------------------------------------------------------------------------
 try:
-    from infer import run_inference, DEFAULT_WEIGHTS              # noqa: E402
-    from utils.pest_map import get_full_pest_info                 # noqa: E402
+    from ai_service.infer import run_inference
+    from ai_service.app.tools.pest_map import get_full_pest_info
 except ImportError as exc:
-    # Non-fatal at import time — the endpoint will return 503 at request time
     run_inference = None       # type: ignore[assignment]
     get_full_pest_info = None  # type: ignore[assignment]
     _IMPORT_ERROR = str(exc)
 else:
     _IMPORT_ERROR = None
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+
+from backend.app.api import deps
+from backend.app.models.user import User
+from backend.app.models.enums import PestDetectionSource, NotificationType
+from backend.app.models.crop_cycle import CropCycle
+from backend.app.models.farm import Farm
+from backend.app.models.pest_detection_history import PestDetectionHistory
+from backend.app.models.notification import Notification
+from backend.app.schemas.pest_history import PestHistoryCreate
+from backend.app.services.pest_history_service import PestHistoryService
+from backend.app.services.notification_service import NotificationService
 
 # ---------------------------------------------------------------------------
 # Allowed MIME types for image uploads
@@ -52,6 +63,7 @@ ALLOWED_CONTENT_TYPES = {
 
 # Supported image file extensions (extra validation layer)
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB limit
 
 router = APIRouter()
 
@@ -65,7 +77,7 @@ def _validate_upload(file: UploadFile) -> None:
     content_type = (file.content_type or "").lower()
     file_ext = Path(file.filename or "").suffix.lower()
 
-    if content_type not in ALLOWED_CONTENT_TYPES and file_ext not in ALLOWED_EXTENSIONS:
+    if content_type not in ALLOWED_CONTENT_TYPES or file_ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail=(
@@ -123,6 +135,12 @@ def _build_response(
                 seen_suggestions.add(tip)
                 all_suggestions.append(tip)
 
+    annotated_path = inference_output.get("annotated_image_path")
+    image_url = None
+    if annotated_path:
+        filename = Path(annotated_path).name
+        image_url = f"/static/detections/{filename}"
+
     return {
         "image": image_filename,
         "total": len(detections),
@@ -131,7 +149,7 @@ def _build_response(
         "bboxes": bboxes,
         "results": full_results,
         "suggestions": all_suggestions,
-        "annotated_image_path": inference_output.get("annotated_image_path"),
+        "annotated_image_path": image_url,
     }
 
 
@@ -147,11 +165,15 @@ def _build_response(
 )
 async def detect_pests(
     file: UploadFile = File(..., description="Farm image to analyse (JPEG/PNG/WebP)"),
+    crop_cycle_id: Optional[int] = Form(None, description="Optional crop cycle to link detection to"),
+    db: Session = Depends(deps.get_db),
+    current_user: Optional[User] = Depends(deps.get_optional_current_user),
 ) -> JSONResponse:
     """
     Upload a farm/crop image and receive a pest detection report.
 
     - **file**: Image file (JPEG, PNG, BMP, or WebP).
+    - **crop_cycle_id**: Optional ID of the crop cycle to associate this detection with.
 
     Returns a JSON payload containing:
     - `pests`: List of detected pest class names.
@@ -160,23 +182,39 @@ async def detect_pests(
     - `results`: Full per-detection detail (pest, confidence, severity, suggestions).
     - `bboxes`: Bounding box coordinates for each detection.
     """
-    # Guard: ai-service imports failed
+    # Guard: validate crop ownership early to prevent IDOR and wasted inference work
+    crop_name = None
+    if current_user and crop_cycle_id is not None:
+        crop_cycle = db.query(CropCycle).join(Farm).filter(
+            CropCycle.id == crop_cycle_id,
+            Farm.user_id == current_user.id
+        ).first()
+        if crop_cycle:
+            crop_name = crop_cycle.crop_name
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid or unauthorized crop_cycle_id"
+            )
+
+    # Guard: ai_service imports failed
     if run_inference is None or get_full_pest_info is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=(
                 "Inference module could not be loaded. "
-                f"Ensure ai-service is on the Python path. Details: {_IMPORT_ERROR}"
+                f"Ensure ai_service is on the Python path. Details: {_IMPORT_ERROR}"
             ),
         )
 
     # Guard: weights not trained yet
-    if not DEFAULT_WEIGHTS.exists():
+    if not WEIGHTS_PATH.exists():
+        print(f"[ERROR] Inference failed: weights not found at {WEIGHTS_PATH}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=(
                 "Trained model weights not found. "
-                "Please run: python ai-service/train.py  before using this endpoint."
+                "Please run: python ai_service/train.py  before using this endpoint."
             ),
         )
 
@@ -190,6 +228,21 @@ async def detect_pests(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Uploaded file is empty.",
         )
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File exceeds maximum size of {MAX_FILE_SIZE // (1024*1024)}MB.",
+        )
+
+    # Signature verification
+    try:
+        img = Image.open(io.BytesIO(content))
+        img.verify()
+    except UnidentifiedImageError:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Invalid or corrupted image content."
+        )
 
     # Save to a temp file (YOLO expects a file path, not bytes)
     suffix = Path(file.filename or "upload.jpg").suffix or ".jpg"
@@ -198,9 +251,11 @@ async def detect_pests(
     try:
         tmp_path.write_bytes(content)
 
-        # Run YOLO inference
-        inference_output = run_inference(
+        # Run YOLO inference without blocking the event loop
+        inference_output = await run_in_threadpool(
+            run_inference,
             image_path=tmp_path,
+            weights_path=WEIGHTS_PATH,
             conf_threshold=0.35,
             save_annotated=True,
         )
@@ -222,4 +277,56 @@ async def detect_pests(
 
     # Build and return structured response
     payload = _build_response(inference_output, file.filename or "upload")
+
+    # --- Auto-persist pest detections & notify (for authenticated users) ---
+    if current_user and payload["total"] > 0:
+        # Atomic transaction for persisting history
+        try:
+            for i, pest_name in enumerate(payload["pests"]):
+                confidence = payload["confidence"][i] if i < len(payload["confidence"]) else None
+                record = PestDetectionHistory(
+                    user_id=current_user.id,
+                    crop_cycle_id=crop_cycle_id,
+                    disease_name=pest_name,
+                    confidence=confidence,
+                    image_url=f"detections/{Path(inference_output['annotated_image_path']).name}" if inference_output.get("annotated_image_path") else None,
+                    source=PestDetectionSource.YOLO,
+                )
+                db.add(record)
+            db.commit()
+
+        except SQLAlchemyError as exc:
+            db.rollback()
+            # Clean up orphaned annotated image
+            if inference_output.get("annotated_image_path"):
+                annot_path = Path(inference_output["annotated_image_path"])
+                if annot_path.exists():
+                    annot_path.unlink(missing_ok=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database error while saving detection history."
+            ) from exc
+
+        # Dispatch notification separately to avoid coupling
+        try:
+            disease_names = list(set(payload["pests"]))
+            title = f"Pest Alert: {', '.join(disease_names)}"
+            message = f"{', '.join(disease_names)} was detected"
+            if crop_name:
+                message += f" on your {crop_name} crop"
+            message += ". Open the Assistant to get treatment recommendations."
+
+            notif = Notification(
+                user_id=current_user.id,
+                title=title,
+                message=message,
+                notification_type=NotificationType.PEST_ALERT,
+            )
+            db.add(notif)
+            db.commit()
+        except SQLAlchemyError as exc:
+            db.rollback()
+            print(f"[ERROR] Failed to save notification: {exc}")
+
     return JSONResponse(content=payload, status_code=status.HTTP_200_OK)
+

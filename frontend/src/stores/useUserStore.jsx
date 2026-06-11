@@ -11,12 +11,14 @@ function mergeFarmerFromUser(prev, user) {
     phone: user.phone ?? prev.phone,
     state: user.state ?? prev.state,
     district: user.district ?? prev.district,
+    village: user.village ?? prev.village,
     age: user.age ?? prev.age,
     gender: user.gender ?? prev.gender,
     land_size_acres: user.land_size_acres ?? prev.land_size_acres,
     crops_grown: user.crops_grown ?? prev.crops_grown,
     category: user.category ?? prev.category,
     annual_income: user.annual_income ?? prev.annual_income,
+    preferred_language: user.preferred_language ?? prev.preferred_language,
   };
 }
 
@@ -27,10 +29,10 @@ export const useUserStore = create(
       user: null,
       farmer: {
         name: '',
-        village: '', // maps to district or town in UI
+        village: '',
         state: '',
         district: '',
-        preferredLang: 'en',
+        preferred_language: 'ENGLISH',
         email: '',
         phone: '',
         age: null,
@@ -46,7 +48,7 @@ export const useUserStore = create(
       setLanguage: (lang) => {
         set((state) => ({
           language: lang,
-          farmer: { ...state.farmer, preferredLang: lang },
+          farmer: { ...state.farmer, preferred_language: lang },
         }));
       },
 
@@ -56,12 +58,15 @@ export const useUserStore = create(
         if (!token) return null;
         try {
           const user = await authApi.getMe(token);
+          const onboarded = user.farmer_profile ? user.farmer_profile.profile_completed : (user.is_onboarded || false);
           set({
             user,
             farmer: mergeFarmerFromUser(get().farmer, user),
+            isOnboarded: onboarded,
           });
           return user;
-        } catch {
+        } catch (err) {
+          console.error("fetchCurrentUser failed, logging out:", err);
           set({
             accessToken: null,
             user: null,
@@ -72,10 +77,31 @@ export const useUserStore = create(
 
       setAccessToken: (token) => set({ accessToken: token }),
 
+      sendOtp: async (phone, channel = 'SMS') => {
+        return authApi.sendOtp(phone, channel);
+      },
+
+      verifyOtp: async (phone, otp, deviceName = 'Web Browser', isTrusted = false) => {
+        const res = await authApi.verifyOtp(phone, otp, deviceName, isTrusted);
+        set({
+          accessToken: res.access_token,
+          isOnboarded: res.profile_completed || false,
+        });
+        const user = await authApi.getMe(res.access_token);
+        set({
+          user,
+          farmer: mergeFarmerFromUser(get().farmer, user),
+        });
+        return res;
+      },
+
       login: async (email, password) => {
-        const { access_token: accessToken } = await authApi.login(email, password);
-        set({ accessToken });
-        const user = await authApi.getMe(accessToken);
+        const res = await authApi.login(email, password);
+        set({
+          accessToken: res.access_token,
+          isOnboarded: res.profile_completed || false,
+        });
+        const user = await authApi.getMe(res.access_token);
         set({
           user,
           farmer: mergeFarmerFromUser(get().farmer, user),
@@ -83,18 +109,20 @@ export const useUserStore = create(
       },
 
       register: async ({ name, email, password, phone }) => {
-        const { access_token: accessToken } = await authApi.register({
+        const res = await authApi.register({
           name,
           email,
           password,
           phone,
         });
-        set({ accessToken });
-        const user = await authApi.getMe(accessToken);
+        set({
+          accessToken: res.access_token,
+          isOnboarded: res.profile_completed || false,
+        });
+        const user = await authApi.getMe(res.access_token);
         set({
           user,
           farmer: mergeFarmerFromUser(get().farmer, user),
-          isOnboarded: false,
         });
       },
 
@@ -104,10 +132,12 @@ export const useUserStore = create(
         const profileUpdates = {
           state: data.state,
           district: data.village || data.district,
+          village: data.village || '',
           land_size_acres: parseFloat(data.land_size_acres) || 0,
           crops_grown: data.crops_grown || [],
           age: parseInt(data.age) || null,
           gender: data.gender || '',
+          preferred_language: data.preferred_language || 'ENGLISH',
         };
 
         if (token) {
@@ -158,7 +188,7 @@ export const useUserStore = create(
             village: '',
             state: '',
             district: '',
-            preferredLang: 'en',
+            preferred_language: 'ENGLISH',
             email: '',
             phone: '',
             age: null,
@@ -171,7 +201,15 @@ export const useUserStore = create(
         });
       },
 
-      logout: () => {
+      logout: async () => {
+        const token = get().accessToken;
+        if (token) {
+          try {
+            await authApi.logout(token);
+          } catch (err) {
+            console.error('Logout request failed:', err);
+          }
+        }
         set({
           accessToken: null,
           user: null,
@@ -181,7 +219,38 @@ export const useUserStore = create(
             village: '',
             state: '',
             district: '',
-            preferredLang: 'en',
+            preferred_language: 'ENGLISH',
+            email: '',
+            phone: '',
+            age: null,
+            gender: '',
+            land_size_acres: null,
+            crops_grown: [],
+            category: '',
+            annual_income: null,
+          },
+        });
+      },
+
+      logoutAll: async () => {
+        const token = get().accessToken;
+        if (token) {
+          try {
+            await authApi.logoutAll(token);
+          } catch (err) {
+            console.error('Logout all request failed:', err);
+          }
+        }
+        set({
+          accessToken: null,
+          user: null,
+          isOnboarded: false,
+          farmer: {
+            name: '',
+            village: '',
+            state: '',
+            district: '',
+            preferred_language: 'ENGLISH',
             email: '',
             phone: '',
             age: null,

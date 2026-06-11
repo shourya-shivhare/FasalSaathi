@@ -2,10 +2,10 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.api import deps
-from app.models.crop import Crop
-from app.schemas.crop import Crop as CropSchema, CropCreate, CropUpdate
-from app.models.user import User
+from backend.app.api import deps
+from backend.app.models.crop import Crop
+from backend.app.schemas.crop import Crop as CropSchema, CropCreate, CropUpdate
+from backend.app.models.user import User
 
 router = APIRouter()
 

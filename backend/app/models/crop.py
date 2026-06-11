@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text
-from app.db.database import Base
+from backend.app.db.database import Base
 
 class Crop(Base):
     __tablename__ = "crops"

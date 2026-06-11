@@ -1,7 +1,7 @@
 # app/models/scheme.py
 from sqlalchemy import Column, Integer, String, Text, DateTime
 from sqlalchemy.dialects.postgresql import ARRAY, JSON
-from app.db.database import Base
+from backend.app.db.database import Base
 
 class Scheme(Base):
     __tablename__ = "schemes"

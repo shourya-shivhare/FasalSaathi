@@ -24,3 +24,10 @@ python-dotenv>=1.0.0
 # YOLO inference (shared via ai-service; install here too for detect endpoint)
 ultralytics>=8.2.0
 opencv-python>=4.9.0
+
+# Twilio Verify API Integration
+twilio>=9.1.0
+
+# Testing Requirements
+pytest>=8.0.0
+pytest-asyncio>=0.23.0

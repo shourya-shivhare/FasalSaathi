@@ -4,14 +4,8 @@ import { useUserStore } from '../../stores/useUserStore.jsx';
 import { useFieldStore } from '../../stores/useFieldStore.jsx';
 
 const LANGUAGES = [
-  { code: 'hi', name: 'हिंदी', eng: 'Hindi', flag: '🇮🇳' },
-  { code: 'pa', name: 'ਪੰਜਾਬੀ', eng: 'Punjabi', flag: '🇮🇳' },
-  { code: 'mr', name: 'मराठी', eng: 'Marathi', flag: '🇮🇳' },
-  { code: 'te', name: 'తెలుగు', eng: 'Telugu', flag: '🇮🇳' },
-  { code: 'ta', name: 'தமிழ்', eng: 'Tamil', flag: '🇮🇳' },
-  { code: 'kn', name: 'ಕನ್ನಡ', eng: 'Kannada', flag: '🇮🇳' },
-  { code: 'bn', name: 'বাংলা', eng: 'Bengali', flag: '🇮🇳' },
-  { code: 'en', name: 'English', eng: 'English', flag: '🌐' },
+  { code: 'HINDI', name: 'हिंदी', eng: 'Hindi', flag: '🇮🇳' },
+  { code: 'ENGLISH', name: 'English', eng: 'English', flag: '🌐' },
 ];
 
 const CROPS = ['Wheat', 'Rice', 'Cotton', 'Maize', 'Soybean', 'Mustard', 'Gram', 'Sugarcane', 'Sunflower', 'Potato'];
@@ -49,7 +43,7 @@ const StepIndicator = ({ current, total }) => (
 
 const OnboardingFlow = ({ onComplete }) => {
   const [step, setStep] = useState(0);
-  const [lang, setLang] = useState('hi');
+  const [lang, setLang] = useState('HINDI');
   const [location, setLocation] = useState('');
   const [state, setState] = useState('');
   const [district, setDistrict] = useState('');
@@ -66,7 +60,7 @@ const OnboardingFlow = ({ onComplete }) => {
       village: location, 
       state: state, 
       district: district || location,
-      language: lang,
+      preferred_language: lang,
       age: age,
       gender: gender,
       land_size_acres: fieldSize,
@@ -173,9 +167,9 @@ const OnboardingFlow = ({ onComplete }) => {
                   <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4A5568', display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>Gender</label>
                   <select value={gender} onChange={e => setGender(e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #E2E8E0', background: '#fff', fontSize: '0.9rem', color: '#1A2B1A', outline: 'none', appearance: 'none', cursor: 'pointer' }}>
                     <option value="">Select...</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
                   </select>
                 </div>
               </div>

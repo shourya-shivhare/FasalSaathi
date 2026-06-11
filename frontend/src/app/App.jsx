@@ -16,6 +16,7 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { SignupPage } from '../features/auth/SignupPage';
 import Home from '../pages/Home';
 import ScanPage from '../pages/scan/ScanPage';
+import { FarmsPage } from '../features/farms/FarmsPage';
 
 function RequireAuth({ children }) {
   const accessToken = useUserStore((s) => s.accessToken);
@@ -88,6 +89,7 @@ const AppContent = () => {
         <main className="main-content">
           <Routes>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/farms" element={<FarmsPage />} />
             <Route path="/detect" element={<ScanPage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/profile" element={<ProfilePage />} />

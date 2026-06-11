@@ -48,6 +48,38 @@ export const authApi = {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
   },
+  async sendOtp(phone_number, channel = 'SMS') {
+    return fetchJSON(`${API_BASE}/auth/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone_number, channel }),
+    });
+  },
+  async verifyOtp(phone_number, otp, device_name = 'Web Browser', is_trusted_device = false) {
+    return fetchJSON(`${API_BASE}/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone_number, otp, device_name, is_trusted_device }),
+    });
+  },
+  async logout(accessToken) {
+    return fetchJSON(`${API_BASE}/auth/logout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+    });
+  },
+  async logoutAll(accessToken) {
+    return fetchJSON(`${API_BASE}/auth/logout-all`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  },
 };
 
 // ── Weather — Open-Meteo (free, no API key) ────────────────────────────────
@@ -251,6 +283,145 @@ export const api = {
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
       body: JSON.stringify(data),
+    });
+  },
+
+  // ── Farm Management ─────────────────────────────────────────────────────
+
+  async getFarms(accessToken) {
+    return fetchJSON(`${API_BASE}/farms/`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+
+  async createFarm(accessToken, data) {
+    return fetchJSON(`${API_BASE}/farms/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateFarm(accessToken, farmId, data) {
+    return fetchJSON(`${API_BASE}/farms/${farmId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteFarm(accessToken, farmId) {
+    const res = await fetch(`${API_BASE}/farms/${farmId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
+  },
+
+  // ── Crop Cycles ─────────────────────────────────────────────────────────
+
+  async getCropCycles(accessToken, params = {}) {
+    const qs = new URLSearchParams();
+    if (params.farm_id) qs.append('farm_id', params.farm_id);
+    if (params.status) qs.append('status', params.status);
+    if (params.season) qs.append('season', params.season);
+    const url = `${API_BASE}/crop-cycles/?${qs}`;
+    return fetchJSON(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+
+  async createCropCycle(accessToken, data) {
+    return fetchJSON(`${API_BASE}/crop-cycles/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateCropCycle(accessToken, cycleId, data) {
+    return fetchJSON(`${API_BASE}/crop-cycles/${cycleId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateCropStage(accessToken, cycleId, stage) {
+    return fetchJSON(`${API_BASE}/crop-cycles/${cycleId}/stage`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ current_stage: stage }),
+    });
+  },
+
+  async completeCropCycle(accessToken, cycleId) {
+    return fetchJSON(`${API_BASE}/crop-cycles/${cycleId}/complete`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+
+  // ── Journal Entries ─────────────────────────────────────────────────────
+
+  async getJournalEntries(accessToken, cropCycleId = null) {
+    const url = cropCycleId
+      ? `${API_BASE}/journal/?crop_cycle_id=${cropCycleId}`
+      : `${API_BASE}/journal/recent`;
+    return fetchJSON(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+
+  async createJournalEntry(accessToken, data) {
+    return fetchJSON(`${API_BASE}/journal/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteJournalEntry(accessToken, entryId) {
+    const res = await fetch(`${API_BASE}/journal/${entryId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
+  },
+
+  // ── Pest History ────────────────────────────────────────────────────────
+
+  async getPestHistory(accessToken) {
+    return fetchJSON(`${API_BASE}/pest-history/`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+
+  // ── Notifications ───────────────────────────────────────────────────────
+
+  async getNotifications(accessToken) {
+    return fetchJSON(`${API_BASE}/notifications/`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+
+  async getUnreadCount(accessToken) {
+    return fetchJSON(`${API_BASE}/notifications/unread-count`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+
+  async markNotificationRead(accessToken, notifId) {
+    return fetchJSON(`${API_BASE}/notifications/${notifId}/read`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+
+  async markAllNotificationsRead(accessToken) {
+    return fetchJSON(`${API_BASE}/notifications/mark-all-read`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
   },
 };

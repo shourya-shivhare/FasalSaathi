@@ -34,7 +34,7 @@ ALLOWED_ORIGINS=["http://localhost:5173","http://localhost:3000"]
 AI_SERVICE_URL=http://localhost:8001
 ```
 
-### AI Service (`ai-service/.env`)
+### AI Service (`ai_service/.env`)
 ```env
 GOOGLE_API_KEY=your-gemini-studio-api-key
 LLM_MODEL=gemini-2.5-flash
@@ -49,7 +49,7 @@ YOLO_OUTPUT_DIR=uploads/detections
 ## 2. YOLOv8 Model Setup
 
 FasalSaathi requires trained YOLOv8 model weights for pest classification.
-1. Place the weights file `best.pt` in: `FasalSaathi/models/best.pt` or `FasalSaathi/ai-service/models/best.pt`.
+1. Place the weights file `best.pt` in: `FasalSaathi/models/best.pt` or `FasalSaathi/ai_service/models/best.pt`.
 2. The path is configured via `YOLO_WEIGHTS_PATH` in the AI Service `.env`.
 3. At startup, the AI service automatically checks if the file exists and loads it into memory via Ultralytics YOLO engine.
 
@@ -80,7 +80,7 @@ Follow these steps to spin up the system.
 ### Step B: AI Service Setup
 1. Activate virtual environment and install dependencies:
    ```bash
-   cd ../ai-service
+   cd ../ai_service
    python -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt
@@ -114,6 +114,6 @@ Because the Gemini free tier enforces a strict limit of 15 requests per minute, 
 ---
 
 ## Code References
-- API configuration: [config.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/core/config.py)
-- Startup logic: [main.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/main.py)
+- API configuration: [config.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/core/config.py)
+- Startup logic: [main.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/main.py)
 - Gateway entry: [main.py](file:///e:/Desktop/Web%20Development/FasalSaathi/backend/main.py)

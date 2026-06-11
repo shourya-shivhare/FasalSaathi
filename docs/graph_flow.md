@@ -51,7 +51,7 @@ graph TD
 
 ## Graph State Schema (`FasalSaathiState`)
 
-The state is represented by the [FasalSaathiState](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/graph/state.py) class, which acts as the shared database for the entire graph transaction.
+The state is represented by the [FasalSaathiState](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/graph/state.py) class, which acts as the shared database for the entire graph transaction.
 
 | Field | Type | Reducer | Purpose |
 |---|---|---|---|
@@ -115,6 +115,6 @@ To prevent infinite loops during low-confidence states, FasalSaathi implements t
 ---
 
 ## Code References
-- Router implementation: [routing.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/graph/routing.py)
-- Main Graph Assembly: [orchestrator.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/graph/orchestrator.py)
-- Scored Validation: [validator.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/graph/validator.py)
+- Router implementation: [routing.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/graph/routing.py)
+- Main Graph Assembly: [orchestrator.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/graph/orchestrator.py)
+- Scored Validation: [validator.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/graph/validator.py)

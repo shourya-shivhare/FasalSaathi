@@ -27,7 +27,7 @@ graph TD
 ## 1. Short-Term Conversation Memory (Checkpointing)
 
 For conversational multi-turn capability, FasalSaathi uses LangGraph's native checkpointing system:
-- **Checkpointer**: [SqliteSaver](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/graph/checkpoints.py) is instantiated with the database file `graph_checkpoints.db`.
+- **Checkpointer**: [SqliteSaver](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/graph/checkpoints.py) is instantiated with the database file `graph_checkpoints.db`.
 - **Functionality**: Saves the entire state dictionary (`FasalSaathiState`) at every checkpoint (node transition). When a client calls `/api/chat` with a specific `thread_id`, the checkpointer automatically loads the exact state snapshot.
 - **Interrupt / Resume**: Essential for image uploads and human intervention. By persisting state, a farmer's session can be suspended mid-execution, prompt for an upload or support review, and resume without losing previous analysis data.
 
@@ -35,7 +35,7 @@ For conversational multi-turn capability, FasalSaathi uses LangGraph's native ch
 
 ## 2. Long-Term Farmer Memory (Relational Store)
 
-Long-term memories are managed by the [SQLiteMemoryStore](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/memory/store.py) class, which writes records to `ai_memory.db`.
+Long-term memories are managed by the [SQLiteMemoryStore](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/memory/store.py) class, which writes records to `ai_memory.db`.
 
 ### Database Schema
 
@@ -77,7 +77,7 @@ CREATE INDEX IF NOT EXISTS idx_fm_time ON farmer_memory(user_id, created_at DESC
 
 ## 4. Context Retrieval for Follow-Up Queries
 
-If the intent router classifies the query as a `follow_up` (e.g. *"Tell me more about the third scheme you mentioned"*), execution branches to [context_retrieval_node](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/context_retrieval.py):
+If the intent router classifies the query as a `follow_up` (e.g. *"Tell me more about the third scheme you mentioned"*), execution branches to [context_retrieval_node](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/context_retrieval.py):
 1. It merges the long-term `memory_context` containing past recommendations with the current thread's active messages.
 2. It extracts historical recommendations and synthesizes a prompt enrichment context.
 3. It hands this structured prompt back to the `conversational` node, allowing the LLM to speak intelligently about past recommendations without repeating the heavy processing graph nodes.
@@ -85,6 +85,6 @@ If the intent router classifies the query as a `follow_up` (e.g. *"Tell me more 
 ---
 
 ## Code References
-- Memory store: [store.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/memory/store.py)
-- Memory nodes: [memory_node.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/memory_node.py)
-- Context retrieval node: [context_retrieval.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/context_retrieval.py)
+- Memory store: [store.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/memory/store.py)
+- Memory nodes: [memory_node.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/memory_node.py)
+- Context retrieval node: [context_retrieval.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/context_retrieval.py)

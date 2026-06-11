@@ -143,27 +143,27 @@ graph TD
 
 | # | Node | Source File | Purpose |
 |---|---|---|---|
-| 1 | `memory_retrieve` | [memory_node.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/memory_node.py) | Loads past conversation context from SQLite memory store |
-| 2 | `intent_router` | [intent_router.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/graph/intent_router.py) | Classifies intent via regex fast-path + Gemini LLM fallback |
-| 3 | `greeting` | [conversational.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/conversational.py) | Handles greetings/thanks (zero LLM API calls) |
-| 4 | `conversational` | [conversational.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/conversational.py) | Free-form agricultural Q&A using Gemini |
-| 5 | `context_retrieval` | [context_retrieval.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/context_retrieval.py) | Pulls prior results for follow-up questions |
-| 6 | `planner` | [planner.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/graph/planner.py) | LLM plans agent execution and parameters |
-| 7 | `validator` | [validator.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/graph/validator.py) | Validates plans, computes graph_score, builds execution groups |
-| 8 | `crop_recommendation` | [crop_recommendation.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/crop_recommendation.py) | Invokes crop recommendation agent |
-| 9 | `market_intelligence` | [market_intelligence.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/market_intelligence.py) | Invokes market analysis agent |
-| 10 | `scheme_recommendation` | [scheme_recommendation.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/scheme_recommendation.py) | Invokes government scheme agent |
-| 11 | `pest_detection` | [pest_detection.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/pest_detection.py) | Runs YOLOv8-based pest/disease detection on crop leaf images |
-| 12 | `image_upload` | [image_upload.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/image_upload.py) | Handles image upload interrupt (LangGraph `interrupt` state) |
-| 13 | `human_intervention` | [human_intervention.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/human_intervention.py) | Requests human input when agent confidence scores are low |
-| 14 | `manual_review` | [manual_review.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/manual_review.py) | Fallback when intervention attempts are exhausted |
-| 15 | `summary` | [summary_node.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/summary_node.py) | Synthesizes agent data into clean, farmer-friendly responses |
-| 16 | `memory_persist` | [memory_node.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/memory_node.py) | Persists conversation state/history back to the SQLite memory store |
-| 17 | `observability` | [observability.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/observability.py) | Logs execution trace, graph path, and timing metrics |
+| 1 | `memory_retrieve` | [memory_node.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/memory_node.py) | Loads past conversation context from SQLite memory store |
+| 2 | `intent_router` | [intent_router.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/graph/intent_router.py) | Classifies intent via regex fast-path + Gemini LLM fallback |
+| 3 | `greeting` | [conversational.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/conversational.py) | Handles greetings/thanks (zero LLM API calls) |
+| 4 | `conversational` | [conversational.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/conversational.py) | Free-form agricultural Q&A using Gemini |
+| 5 | `context_retrieval` | [context_retrieval.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/context_retrieval.py) | Pulls prior results for follow-up questions |
+| 6 | `planner` | [planner.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/graph/planner.py) | LLM plans agent execution and parameters |
+| 7 | `validator` | [validator.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/graph/validator.py) | Validates plans, computes graph_score, builds execution groups |
+| 8 | `crop_recommendation` | [crop_recommendation.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/crop_recommendation.py) | Invokes crop recommendation agent |
+| 9 | `market_intelligence` | [market_intelligence.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/market_intelligence.py) | Invokes market analysis agent |
+| 10 | `scheme_recommendation` | [scheme_recommendation.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/scheme_recommendation.py) | Invokes government scheme agent |
+| 11 | `pest_detection` | [pest_detection.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/pest_detection.py) | Runs YOLOv8-based pest/disease detection on crop leaf images |
+| 12 | `image_upload` | [image_upload.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/image_upload.py) | Handles image upload interrupt (LangGraph `interrupt` state) |
+| 13 | `human_intervention` | [human_intervention.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/human_intervention.py) | Requests human input when agent confidence scores are low |
+| 14 | `manual_review` | [manual_review.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/manual_review.py) | Fallback when intervention attempts are exhausted |
+| 15 | `summary` | [summary_node.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/summary_node.py) | Synthesizes agent data into clean, farmer-friendly responses |
+| 16 | `memory_persist` | [memory_node.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/memory_node.py) | Persists conversation state/history back to the SQLite memory store |
+| 17 | `observability` | [observability.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/observability.py) | Logs execution trace, graph path, and timing metrics |
 
 ### Graph State Schema (`FasalSaathiState`)
 
-The state is managed using a `TypedDict` in [state.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/graph/state.py) that acts as the single source of truth:
+The state is managed using a `TypedDict` in [state.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/graph/state.py) that acts as the single source of truth:
 
 ```python
 class FasalSaathiState(TypedDict):
@@ -188,7 +188,7 @@ class FasalSaathiState(TypedDict):
 
 ### Routing Logic
 
-Defined in [routing.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/graph/routing.py):
+Defined in [routing.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/graph/routing.py):
 
 | Function | Trigger | Routes To |
 |---|---|---|
@@ -214,22 +214,22 @@ Defined in [routing.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-serv
 
 | Agent | Source File | Tools Used | Purpose |
 |---|---|---|---|
-| 🌾 **Crop Recommendation** | [crop_recommendation_agent.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/agents/crop_recommendation_agent.py) | Weather Client, Soil Data | Recommends crops based on soil, climate, location, and history |
-| 📊 **Market Intelligence** | [market_intelligence_agent.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/agents/market_intelligence_agent.py) | AgMarkNet, Trend Analysis, Price Forecasting | Mandi prices, price forecasting, demand trends |
-| 🏛️ **Scheme Recommendation** | [scheme_recommendation_agent.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/agents/scheme_recommendation_agent.py) | Government Scheme DB | Personalised matching with eligible government schemes |
-| 🐛 **Pest Detection** | [pest_detection.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/nodes/pest_detection.py) | Trained YOLOv8 Weights | Detects crop pests/diseases from uploads |
+| 🌾 **Crop Recommendation** | [crop_recommendation_agent.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/agents/crop_recommendation_agent.py) | Weather Client, Soil Data | Recommends crops based on soil, climate, location, and history |
+| 📊 **Market Intelligence** | [market_intelligence_agent.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/agents/market_intelligence_agent.py) | AgMarkNet, Trend Analysis, Price Forecasting | Mandi prices, price forecasting, demand trends |
+| 🏛️ **Scheme Recommendation** | [scheme_recommendation_agent.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/agents/scheme_recommendation_agent.py) | Government Scheme DB | Personalised matching with eligible government schemes |
+| 🐛 **Pest Detection** | [pest_detection.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/nodes/pest_detection.py) | Trained YOLOv8 Weights | Detects crop pests/diseases from uploads |
 
 ### External Tool Integrations
 
 | Tool | Source File | Source API / Data | Purpose |
 |---|---|---|---|
-| Weather Client | [weather_client.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/tools/weather_client.py) | OpenWeatherMap API | Live weather for location |
-| AgMarkNet Client | [agmarknet_client.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/tools/agmarknet_client.py) | Govt Mandi prices | Fetches real-time price sheets |
-| Trend Analysis | [trend_analysis.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/tools/trend_analysis.py) | Price History Database | Computes pricing momentum |
-| Price Forecasting | [forecasting.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/tools/forecasting.py) | ML Regression Models | Multi-week price forecasts |
-| Pest Map | [pest_map.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/tools/pest_map.py) | Knowledge Base | Maps 12-class pest output to remedies |
-| Scheme Database | [scheme_db.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/tools/scheme_db.py) | Curated Database | Catalogs 25+ seed government schemes |
-| Memory Tools | [memory_tools.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/tools/memory_tools.py) | SQLite Database | Reads/Writes long term memory keys |
+| Weather Client | [weather_client.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/tools/weather_client.py) | OpenWeatherMap API | Live weather for location |
+| AgMarkNet Client | [agmarknet_client.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/tools/agmarknet_client.py) | Govt Mandi prices | Fetches real-time price sheets |
+| Trend Analysis | [trend_analysis.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/tools/trend_analysis.py) | Price History Database | Computes pricing momentum |
+| Price Forecasting | [forecasting.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/tools/forecasting.py) | ML Regression Models | Multi-week price forecasts |
+| Pest Map | [pest_map.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/tools/pest_map.py) | Knowledge Base | Maps 12-class pest output to remedies |
+| Scheme Database | [scheme_db.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/tools/scheme_db.py) | Curated Database | Catalogs 25+ seed government schemes |
+| Memory Tools | [memory_tools.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/tools/memory_tools.py) | SQLite Database | Reads/Writes long term memory keys |
 
 ### YOLOv8 Pest Detection Model
 *   **Classes (12)**: Ants, Bees, Beetles, Caterpillars, Earwigs, Earthworms, Grasshoppers, Moths, Slugs, Snails, Wasps, Weevils.
@@ -343,7 +343,7 @@ FasalSaathi/
 │       ├── db/                        # Database context initialization
 │       └── core/                      # Security configs and JWT signing
 │
-├── ai-service/                        # LangGraph AI Engine (:8001)
+├── ai_service/                        # LangGraph AI Engine (:8001)
 │   ├── main.py                        # Service startup and routing definition
 │   ├── train.py                       # YOLOv8 training scripts
 │   ├── infer.py                       # YOLOv8 standalone inference tests
@@ -444,13 +444,13 @@ AI_SERVICE_URL=http://localhost:8001
 
 ### 3. AI Service Setup
 ```bash
-cd ai-service
+cd ai_service
 python -m venv venv
 venv\Scripts\activate        # On Windows
 pip install -r requirements.txt
 uvicorn main:app --port 8001 --reload
 ```
-Create `ai-service/.env`:
+Create `ai_service/.env`:
 ```env
 GOOGLE_API_KEY=your-gemini-api-key
 LLM_MODEL=gemini-2.5-flash
@@ -463,13 +463,13 @@ YOLO_OUTPUT_DIR=outputs/detections
 ### 4. ML Pipeline Actions
 ```bash
 # Train the YOLO model
-python ai-service/train.py --epochs 10
+python ai_service/train.py --epochs 10
 
 # Validate performance on the test set
-python ai-service/evaluate.py
+python ai_service/evaluate.py
 
 # Run standalone CLI inference checks on target images
-python ai-service/infer.py --image path/to/leaf_photo.jpg
+python ai_service/infer.py --image path/to/leaf_photo.jpg
 ```
 
 ---
@@ -496,7 +496,7 @@ python ai-service/infer.py --image path/to/leaf_photo.jpg
 
 | Issue | Severity | Target Path | Remediation / Mitigation |
 |---|---|---|---|
-| `on_event` Deprecation | Low | [main.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/main.py) | Migrate startup/shutdown hooks to a `lifespan` context manager |
+| `on_event` Deprecation | Low | [main.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/main.py) | Migrate startup/shutdown hooks to a `lifespan` context manager |
 | Empty API wrapper | Low | `src/services/api.jsx` | Migrate inline Axios operations to central API hooks |
 | Standalone route stub | Low | `src/app/routes.jsx` | Map `/detect` endpoints directly to the compiled `ScanPage` view |
 | Unused directories | Low | `src/features/crop` | Clean up empty directories in favour of `/crop-suggestion` |

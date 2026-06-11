@@ -69,6 +69,6 @@ Plans scoring below `0.4` automatically fall back to conversational assistance.
 ---
 
 ## Code References
-- Main entry point: [main.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/main.py)
-- Graph definition: [orchestrator.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai-service/app/graph/orchestrator.py)
+- Main entry point: [main.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/main.py)
+- Graph definition: [orchestrator.py](file:///e:/Desktop/Web%20Development/FasalSaathi/ai_service/app/graph/orchestrator.py)
 - Backend gateway entry: [main.py](file:///e:/Desktop/Web%20Development/FasalSaathi/backend/main.py)

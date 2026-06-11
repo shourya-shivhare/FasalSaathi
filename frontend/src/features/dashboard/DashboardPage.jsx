@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Camera, ScanLine, TrendingUp, Leaf, Bell, CloudSun, ShieldAlert, Sun, Cloud, CloudRain, Zap } from 'lucide-react';
+import React, { useMemo, useEffect } from 'react';
+import { Camera, ScanLine, TrendingUp, Leaf, Bell, CloudSun, ShieldAlert, Sun, Cloud, CloudRain, Zap, MapPin, Sprout } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { WeatherCard } from './components/WeatherCard';
@@ -9,6 +9,9 @@ import { IrrigationTimer } from './components/IrrigationTimer';
 import { AlertsFeed } from './components/AlertsFeed';
 import { useFieldData } from './hooks/useFieldData';
 import { useUserStore } from '../../stores/useUserStore.jsx';
+import { useFarmStore } from '../../stores/useFarmStore.jsx';
+import { useCropCycleStore } from '../../stores/useCropCycleStore.jsx';
+import { useNotificationStore } from '../../stores/useNotificationStore.jsx';
 
 const StatCard = ({ icon: Icon, label, value, sub }) => (
   <div style={{
@@ -61,6 +64,11 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const { farmer, logout } = useUserStore();
   const { activeField, weather, soil, irrigation, hasFields, isLoading, fields, scanHistory } = useFieldData();
+  const { farms, fetchFarms } = useFarmStore();
+  const { cycles, fetchCycles } = useCropCycleStore();
+  const { notifications } = useNotificationStore();
+
+  useEffect(() => { fetchFarms(); fetchCycles(); }, []);
 
   // Derive real stats from actual data
   const stats = useMemo(() => {
@@ -302,6 +310,158 @@ const DashboardPage = () => {
         </div>
       </div>
 
+      {/* ── Farm-Aware Widgets ─────────────────────────────────── */}
+
+      {/* Farm Summary Card */}
+      {farms.length > 0 && (
+        <div style={{
+          background: 'var(--color-surface)', borderRadius: '16px',
+          border: '1px solid var(--color-border)', padding: '20px 24px',
+          marginBottom: '24px', boxShadow: '0 1px 8px rgba(26,122,64,0.07)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+            <h2 style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '1.05rem',
+              fontWeight: 700, color: 'var(--color-text-primary)', margin: 0,
+            }}>
+              🏡 Farm Summary
+            </h2>
+            <button
+              onClick={() => navigate('/farms')}
+              style={{
+                border: 'none', background: 'none', color: 'var(--color-accent-primary)',
+                fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              Manage farms →
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+            {farms.slice(0, 4).map((farm) => {
+              const fCycles = cycles.filter((c) => c.farm_id === farm.id && c.status === 'ACTIVE');
+              return (
+                <div key={farm.id} style={{
+                  flex: '1 1 200px', background: 'var(--color-bg-primary)', borderRadius: '12px',
+                  padding: '14px 18px', border: '1px solid var(--color-border)',
+                }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--color-text-primary)', marginBottom: '6px' }}>
+                    {farm.farm_name}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    {farm.village && <span><MapPin size={12} style={{verticalAlign: 'middle'}} /> {farm.village}</span>}
+                    {farm.total_area && <span>📐 {farm.total_area}ac</span>}
+                    <span style={{
+                      padding: '1px 8px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 600,
+                      background: '#dcfce7', color: '#16a34a',
+                    }}>
+                      {fCycles.length} active
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Active Crops Widget */}
+      {cycles.filter((c) => c.status === 'ACTIVE').length > 0 && (
+        <div style={{
+          background: 'var(--color-surface)', borderRadius: '16px',
+          border: '1px solid var(--color-border)', padding: '20px 24px',
+          marginBottom: '24px', boxShadow: '0 1px 8px rgba(26,122,64,0.07)',
+        }}>
+          <h2 style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '1.05rem',
+            fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 14px',
+          }}>
+            🌱 Active Crops
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px' }}>
+            {cycles.filter((c) => c.status === 'ACTIVE').slice(0, 6).map((cycle) => {
+              const farm = farms.find((f) => f.id === cycle.farm_id);
+              const stageColors = {
+                SEEDING: '#10b981', GERMINATION: '#34d399', VEGETATIVE: '#22c55e',
+                FLOWERING: '#f59e0b', FRUITING: '#f97316', MATURITY: '#ef4444',
+              };
+              return (
+                <div key={cycle.id} style={{
+                  background: 'var(--color-bg-primary)', borderRadius: '12px',
+                  padding: '14px 18px', border: '1px solid var(--color-border)',
+                  borderLeft: `4px solid ${stageColors[cycle.current_stage] || '#6b7280'}`,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <div>
+                      <strong style={{ fontSize: '0.92rem', color: 'var(--color-text-primary)' }}>{cycle.crop_name}</strong>
+                      {cycle.crop_variety && (
+                        <span style={{
+                          marginLeft: '8px', fontSize: '0.7rem', fontWeight: 600,
+                          padding: '1px 7px', borderRadius: '6px', background: '#ede9fe', color: '#7c3aed',
+                        }}>
+                          {cycle.crop_variety}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{
+                      fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px',
+                      borderRadius: '20px', background: '#fef3c7', color: '#92400e',
+                    }}>
+                      {cycle.season}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', display: 'flex', gap: '10px' }}>
+                    <span style={{ fontWeight: 600, color: stageColors[cycle.current_stage] || '#6b7280' }}>
+                      {cycle.current_stage}
+                    </span>
+                    {farm && <span>· {farm.farm_name}</span>}
+                    {cycle.updated_at && (
+                      <span>· {new Date(cycle.updated_at).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Market & Pest Alerts from Notifications */}
+      {notifications.filter((n) => !n.is_read).length > 0 && (
+        <div style={{
+          background: 'var(--color-surface)', borderRadius: '16px',
+          border: '1px solid var(--color-border)', padding: '20px 24px',
+          marginBottom: '24px', boxShadow: '0 1px 8px rgba(26,122,64,0.07)',
+        }}>
+          <h2 style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '1.05rem',
+            fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 14px',
+          }}>
+            ⚡ Recent Alerts
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {notifications.filter((n) => !n.is_read).slice(0, 5).map((n) => (
+              <div key={n.id} style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '10px 14px', borderRadius: '10px',
+                background: 'var(--color-bg-primary)', border: '1px solid var(--color-border)',
+                borderLeft: `3px solid ${n.notification_type === 'PEST_ALERT' ? '#ef4444' : '#f59e0b'}`,
+              }}>
+                <span style={{ fontSize: '1.2rem' }}>
+                  {n.notification_type === 'PEST_ALERT' ? '🐛' : '📊'}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>{n.title}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.message}</div>
+                </div>
+                <span style={{ fontSize: '0.68rem', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
+                  {new Date(n.created_at).toLocaleDateString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Two-column: Weather + Irrigation */}
       {weather && hasFields && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
@@ -344,17 +504,17 @@ const DashboardPage = () => {
           border: '2px dashed var(--color-border)', background: 'var(--color-surface)', marginTop: '16px',
         }}>
           <div style={{ fontSize: '48px', marginBottom: '12px' }}>🌱</div>
-          <h3 style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>No fields added yet</h3>
-          <p style={{ color: 'var(--color-text-secondary)', margin: '0 0 20px' }}>Add your first field in Profile to start tracking your farm</p>
+          <h3 style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>No farms added yet</h3>
+          <p style={{ color: 'var(--color-text-secondary)', margin: '0 0 20px' }}>Add your first farm to start tracking crops and get better AI recommendations</p>
           <button
-            onClick={() => navigate('/profile')}
+            onClick={() => navigate('/farms')}
             style={{
               padding: '12px 28px', background: 'var(--color-accent-primary)',
               color: '#fff', border: 'none', borderRadius: '12px',
               fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer',
             }}
           >
-            Go to Profile →
+            Add Farm →
           </button>
         </div>
       )}
