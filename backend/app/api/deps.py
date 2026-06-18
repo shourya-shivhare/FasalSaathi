@@ -70,7 +70,7 @@ def get_current_user(
         raise HTTPException(status_code=404, detail="User not found")
         
     # Check soft-deleted or non-active accounts
-    if user.deleted_at is not None or user.account_status != AccountStatus.ACTIVE:
+    if user.status != AccountStatus.ACTIVE:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your account has been deactivated, suspended, or deleted."
@@ -101,7 +101,7 @@ def get_optional_current_user(
             return None
             
         user = db.query(User).filter(User.id == int(user_id)).first()
-        if not user or user.deleted_at is not None or user.account_status != AccountStatus.ACTIVE:
+        if not user or user.status != AccountStatus.ACTIVE:
             return None
             
         return user

@@ -11,6 +11,7 @@ from ai_service.app.core.config import settings
 from ai_service.app.routers.chat import router as chat_router
 from ai_service.app.routers.detection import router as detection_router
 from ai_service.app.routers.agents import router as agents_router
+from ai_service.app.routers.market import router as market_router
 
 # ── Configure logging ────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -41,6 +42,9 @@ app.include_router(detection_router, prefix="/detect", tags=["Pest Detection"])
 
 # Agent-specific endpoints (backward-compatible with backend proxy)
 app.include_router(agents_router, prefix="/api/v1/agents", tags=["Agents"])
+
+# Market Intelligence endpoints (proxied by backend)
+app.include_router(market_router, prefix="/api/v1/market", tags=["Market"])
 
 
 # ── Startup ──────────────────────────────────────────────────────────────────

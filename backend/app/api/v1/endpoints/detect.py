@@ -41,14 +41,12 @@ from sqlalchemy.orm import Session
 
 from backend.app.api import deps
 from backend.app.models.user import User
-from backend.app.models.enums import PestDetectionSource, NotificationType
+from backend.app.models.enums import PestDetectionSource
 from backend.app.models.crop_cycle import CropCycle
 from backend.app.models.farm import Farm
 from backend.app.models.pest_detection_history import PestDetectionHistory
-from backend.app.models.notification import Notification
 from backend.app.schemas.pest_history import PestHistoryCreate
 from backend.app.services.pest_history_service import PestHistoryService
-from backend.app.services.notification_service import NotificationService
 
 # ---------------------------------------------------------------------------
 # Allowed MIME types for image uploads
@@ -278,18 +276,29 @@ async def detect_pests(
     # Build and return structured response
     payload = _build_response(inference_output, file.filename or "upload")
 
-    # --- Auto-persist pest detections & notify (for authenticated users) ---
-    if current_user and payload["total"] > 0:
+    # --- Auto-persist pest detections (for authenticated users) ---
+    if current_user:
         # Atomic transaction for persisting history
         try:
-            for i, pest_name in enumerate(payload["pests"]):
-                confidence = payload["confidence"][i] if i < len(payload["confidence"]) else None
+            if payload["total"] > 0:
+                for i, pest_name in enumerate(payload["pests"]):
+                    confidence = payload["confidence"][i] if i < len(payload["confidence"]) else None
+                    record = PestDetectionHistory(
+                        user_id=current_user.id,
+                        crop_cycle_id=crop_cycle_id,
+                        disease_name=pest_name,
+                        confidence=confidence,
+                        image_url=f"detections/{Path(inference_output['annotated_image_path']).name}" if inference_output.get("annotated_image_path") else None,
+                        source=PestDetectionSource.YOLO,
+                    )
+                    db.add(record)
+            else:
                 record = PestDetectionHistory(
                     user_id=current_user.id,
                     crop_cycle_id=crop_cycle_id,
-                    disease_name=pest_name,
-                    confidence=confidence,
-                    image_url=f"detections/{Path(inference_output['annotated_image_path']).name}" if inference_output.get("annotated_image_path") else None,
+                    disease_name="No Pest Detected",
+                    confidence=1.0,
+                    image_url=None,
                     source=PestDetectionSource.YOLO,
                 )
                 db.add(record)
@@ -307,26 +316,6 @@ async def detect_pests(
                 detail="Database error while saving detection history."
             ) from exc
 
-        # Dispatch notification separately to avoid coupling
-        try:
-            disease_names = list(set(payload["pests"]))
-            title = f"Pest Alert: {', '.join(disease_names)}"
-            message = f"{', '.join(disease_names)} was detected"
-            if crop_name:
-                message += f" on your {crop_name} crop"
-            message += ". Open the Assistant to get treatment recommendations."
-
-            notif = Notification(
-                user_id=current_user.id,
-                title=title,
-                message=message,
-                notification_type=NotificationType.PEST_ALERT,
-            )
-            db.add(notif)
-            db.commit()
-        except SQLAlchemyError as exc:
-            db.rollback()
-            print(f"[ERROR] Failed to save notification: {exc}")
 
     return JSONResponse(content=payload, status_code=status.HTTP_200_OK)
 

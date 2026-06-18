@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Plus, MapPin, Phone, Camera, ScanLine, Bell, BarChart2, Shield, Edit2, Map, X } from 'lucide-react';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Modal } from '../../components/ui/Modal';
 import { useUserStore } from '../../stores/useUserStore.jsx';
 import { useFieldStore } from '../../stores/useFieldStore.jsx';
+import { useFarmStore } from '../../stores/useFarmStore.jsx';
+import { useCropCycleStore } from '../../stores/useCropCycleStore.jsx';
 import { AddFieldForm } from '../fields/components/AddFieldForm';
 import { FieldMap } from '../fields/components/FieldMap';
 
 const ProfilePage = () => {
-  const { farmer, user, updateFarmerProfile } = useUserStore();
-  const { fields, addField, setActiveField, activeFieldId, getTotalLand, getUniqueCrops } = useFieldStore();
+  const { farmer, user, updateFarmerProfile, fetchCurrentUser } = useUserStore();
+  const { farms, fetchFarms, createFarm } = useFarmStore();
+  const { cycles, fetchCycles, createCycle } = useCropCycleStore();
+  const { setActiveField, activeFieldId } = useFieldStore();
   
   // Modals state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -17,6 +21,28 @@ const ProfilePage = () => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   
   const [selectedField, setSelectedField] = useState(null);
+
+  // Fetch from backend on mount
+  useEffect(() => {
+    fetchCurrentUser();
+    fetchFarms();
+    fetchCycles();
+  }, []);
+
+  // Map farms and active cycles to fields dynamically
+  const fields = farms.map(farm => {
+    const activeCycle = cycles.find(c => c.farm_id === farm.id && c.status === 'ACTIVE');
+    return {
+      id: farm.id,
+      name: farm.farm_name,
+      area: farm.total_area,
+      areaUnit: 'acres',
+      crop: activeCycle ? activeCycle.crop_name : null,
+      growthStage: activeCycle ? activeCycle.current_stage : 'Vegetative',
+      soilType: farm.soil_type || 'Loamy',
+      location: { village: farm.village, district: farm.district, state: farm.state }
+    };
+  });
 
   // Edit profile form state
   const [profileForm, setProfileForm] = useState({
@@ -36,10 +62,52 @@ const ProfilePage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
-  const handleAddField = (fieldData) => {
-    const f = addField(fieldData);
-    setShowAddForm(false);
-    setActiveField(f.id);
+  // Sync profileForm state if farmer/user changes in store
+  useEffect(() => {
+    if (farmer || user) {
+      setProfileForm({
+        full_name: farmer?.full_name || user?.name || farmer?.name || '',
+        age: farmer?.age || '',
+        gender: farmer?.gender || '',
+        state: farmer?.state || '',
+        district: farmer?.district || '',
+        village: farmer?.village || '',
+        farm_size_acres: farmer?.farm_size_acres || farmer?.land_size_acres || '',
+        annual_income: farmer?.annual_income || '',
+        category: farmer?.category || '',
+        preferred_language: farmer?.preferred_language || 'ENGLISH',
+        soil_type: farmer?.soil_type || '',
+        irrigation_source: farmer?.irrigation_source || ''
+      });
+    }
+  }, [farmer, user]);
+
+  const handleAddField = async (fieldData) => {
+    try {
+      const farm = await createFarm({
+        farm_name: fieldData.name,
+        state: fieldData.location?.state || farmer?.state || 'Delhi',
+        district: fieldData.location?.district || farmer?.district || 'Delhi',
+        village: fieldData.location?.village || farmer?.village || 'Delhi',
+        total_area: parseFloat(fieldData.area) || 0,
+        soil_type: fieldData.soilType?.toUpperCase() || 'LOAMY',
+        irrigation_source: 'BOREWELL'
+      });
+      
+      if (fieldData.crop) {
+        await createCycle({
+          farm_id: farm.id,
+          crop_name: fieldData.crop,
+          crop_variety: 'Normal',
+          season: 'KHARIF',
+          current_stage: 'SEEDING'
+        });
+      }
+      setShowAddForm(false);
+      setActiveField(farm.id);
+    } catch (err) {
+      console.error("Failed to add field to backend:", err);
+    }
   };
 
   const handleViewDetails = (field) => {
@@ -99,13 +167,18 @@ const ProfilePage = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
           {/* Profile Card */}
-          <div style={{ background: 'var(--color-surface)', borderRadius: '20px', border: '1px solid var(--color-border)', padding: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', textAlign: 'center' }}>
-            <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'linear-gradient(135deg,#1A7A40,#FACC15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 4px 16px rgba(26,122,64,0.3)', fontSize: '1.8rem', fontWeight: 800, color: '#fff', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+          <div style={{ background: 'var(--color-bg-secondary)', borderRadius: '20px', border: '1px solid var(--color-border)', padding: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', textAlign: 'center' }}>
+            <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 4px 16px rgba(26,122,64,0.3)', fontSize: '1.8rem', fontWeight: 800, color: '#fff', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
               {(user?.name?.[0] || farmer?.name?.[0] || 'F').toUpperCase()}
             </div>
-            <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.15rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 6px' }}>
+            <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.15rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 4px' }}>
               {farmer?.full_name || user?.name || farmer?.name || 'Farmer'}
             </h2>
+            {user?.username && (
+              <p style={{ color: 'var(--color-accent-primary)', fontSize: '0.85rem', fontWeight: 600, margin: '0 0 10px' }}>
+                @{user.username}
+              </p>
+            )}
             {user?.email && (
               <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem', margin: '0 0 8px', wordBreak: 'break-all' }}>
                 {user.email}
@@ -118,13 +191,13 @@ const ProfilePage = () => {
               <Phone size={13} /> {user?.phone_number || user?.phone || farmer?.phone || '—'}
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
-               <div style={{ background: 'var(--color-bg-primary)', padding: '8px', borderRadius: '10px' }}>
+               <div style={{ background: 'var(--color-bg-primary)', padding: '8px', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
                  <div style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Age</div>
-                 <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{farmer?.age || '—'}</div>
+                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>{farmer?.age || '—'}</div>
                </div>
-               <div style={{ background: 'var(--color-bg-primary)', padding: '8px', borderRadius: '10px' }}>
+               <div style={{ background: 'var(--color-bg-primary)', padding: '8px', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
                  <div style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Gender</div>
-                 <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{farmer?.gender || '—'}</div>
+                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>{farmer?.gender || '—'}</div>
                </div>
             </div>
             <button 
@@ -152,25 +225,25 @@ const ProfilePage = () => {
           </div>
 
           {/* Account Details from Backend */}
-          <div style={{ background: 'var(--color-surface)', borderRadius: '20px', border: '1px solid var(--color-border)', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+          <div style={{ background: 'var(--color-bg-secondary)', borderRadius: '20px', border: '1px solid var(--color-border)', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
             <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 14px' }}>🛡️ Account Info</h3>
             {[
-              { label: 'Status', value: user?.account_status || 'ACTIVE', highlight: user?.account_status === 'ACTIVE' },
+              { label: 'Status', value: user?.status || 'ACTIVE', highlight: (user?.status === 'ACTIVE') },
               { label: 'Role', value: user?.role || 'FARMER' },
               { label: 'Joined', value: user?.created_at ? new Date(user.created_at).toLocaleDateString() : '—' },
             ].map(item => (
               <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--color-border)', fontSize: '0.83rem' }}>
                 <span style={{ color: 'var(--color-text-secondary)' }}>{item.label}</span>
-                <span style={{ fontWeight: 600, color: item.highlight ? 'var(--color-success)' : 'var(--color-text-primary)' }}>{item.value}</span>
+                <span style={{ fontWeight: 600, color: item.highlight ? 'var(--color-success-text)' : 'var(--color-text-primary)' }}>{item.value}</span>
               </div>
             ))}
           </div>
 
           {/* Farming Info */}
-          <div style={{ background: 'var(--color-surface)', borderRadius: '20px', border: '1px solid var(--color-border)', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+          <div style={{ background: 'var(--color-bg-secondary)', borderRadius: '20px', border: '1px solid var(--color-border)', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
             <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 14px' }}>🌾 Farm Details</h3>
             {[
-              { label: 'Total Land', value: `${farmer?.farm_size_acres || farmer?.land_size_acres || getTotalLand() || 0} Acres` },
+              { label: 'Total Land', value: `${(farmer?.land_size_acres ?? farmer?.farm_size_acres ?? farms.reduce((sum, f) => sum + (parseFloat(f.total_area) || 0), 0)) || 0} Acres` },
               { label: 'Soil Type', value: farmer?.soil_type || '—' },
               { label: 'Irrigation', value: farmer?.irrigation_source || '—' },
               { label: 'Language', value: farmer?.preferred_language || 'ENGLISH' },
@@ -198,7 +271,7 @@ const ProfilePage = () => {
           </div>
 
           {fields.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '64px 32px', background: 'var(--color-surface)', borderRadius: '20px', border: '2px dashed var(--color-border)' }}>
+            <div style={{ textAlign: 'center', padding: '64px 32px', background: 'var(--color-bg-secondary)', borderRadius: '20px', border: '2px dashed var(--color-border)' }}>
               <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🌾</div>
               <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>No fields added yet</h3>
               <p style={{ color: 'var(--color-text-secondary)', maxWidth: '300px', margin: '0 auto 20px', fontSize: '0.875rem' }}>
@@ -211,7 +284,7 @@ const ProfilePage = () => {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
               {fields.map(field => (
-                <div key={field.id} style={{ background: 'var(--color-surface)', borderRadius: '20px', border: '1px solid var(--color-border)', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', transition: 'transform 0.15s, box-shadow 0.15s', cursor: 'default' }}
+                <div key={field.id} style={{ background: 'var(--color-bg-secondary)', borderRadius: '20px', border: '1px solid var(--color-border)', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', transition: 'transform 0.15s, box-shadow 0.15s', cursor: 'default' }}
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)'; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'; }}>
                   {/* Card Header */}
@@ -227,7 +300,7 @@ const ProfilePage = () => {
                         { label: 'Soil', value: field.soilType || '—', icon: '🪨' },
                         { label: 'Stage', value: field.growthStage || 'Vegetative', icon: '🌱' },
                       ].map(item => (
-                        <div key={item.label} style={{ background: 'var(--color-bg-primary)', borderRadius: '10px', padding: '10px 12px' }}>
+                        <div key={item.label} style={{ background: 'var(--color-bg-primary)', borderRadius: '10px', padding: '10px 12px', border: '1px solid var(--color-border)' }}>
                           <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.icon} {item.label}</div>
                           <div style={{ fontWeight: 600, color: 'var(--color-text-primary)', fontSize: '0.85rem' }}>{item.value}</div>
                         </div>
@@ -275,7 +348,7 @@ const ProfilePage = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>Full Name</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-primary)' }}>Full Name</label>
               <input 
                 type="text" 
                 name="full_name"
@@ -286,7 +359,7 @@ const ProfilePage = () => {
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>Age</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-primary)' }}>Age</label>
               <input 
                 type="number" 
                 name="age"
@@ -299,36 +372,36 @@ const ProfilePage = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>Gender</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-primary)' }}>Gender</label>
               <select 
                 name="gender"
                 value={profileForm.gender}
                 onChange={handleProfileChange}
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)' }}
               >
-                <option value="">Select Gender</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
+                <option value="" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Select Gender</option>
+                <option value="MALE" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Male</option>
+                <option value="FEMALE" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Female</option>
+                <option value="OTHER" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Other</option>
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>Preferred Language</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-primary)' }}>Preferred Language</label>
               <select 
                 name="preferred_language"
                 value={profileForm.preferred_language}
                 onChange={handleProfileChange}
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)' }}
               >
-                <option value="ENGLISH">English</option>
-                <option value="HINDI">Hindi</option>
+                <option value="ENGLISH" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>English</option>
+                <option value="HINDI" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Hindi</option>
               </select>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>State</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-primary)' }}>State</label>
               <input 
                 type="text" 
                 name="state"
@@ -339,7 +412,7 @@ const ProfilePage = () => {
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>District</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-primary)' }}>District</label>
               <input 
                 type="text" 
                 name="district"
@@ -350,7 +423,7 @@ const ProfilePage = () => {
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>Village</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-primary)' }}>Village</label>
               <input 
                 type="text" 
                 name="village"
@@ -364,7 +437,7 @@ const ProfilePage = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>Land Size (Acres)</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-primary)' }}>Land Size (Acres)</label>
               <input 
                 type="number" 
                 step="0.01"
@@ -376,7 +449,7 @@ const ProfilePage = () => {
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>Annual Income (₹)</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-primary)' }}>Annual Income (₹)</label>
               <input 
                 type="number" 
                 name="annual_income"
@@ -389,42 +462,42 @@ const ProfilePage = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>Soil Type</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-primary)' }}>Soil Type</label>
               <select 
                 name="soil_type"
                 value={profileForm.soil_type}
                 onChange={handleProfileChange}
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)' }}
               >
-                <option value="">Select Soil Type</option>
-                <option value="CLAY">Clay</option>
-                <option value="LOAMY">Loamy</option>
-                <option value="SANDY">Sandy</option>
-                <option value="BLACK">Black</option>
-                <option value="RED">Red</option>
-                <option value="SILT">Silt</option>
+                <option value="" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Select Soil Type</option>
+                <option value="CLAY" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Clay</option>
+                <option value="LOAMY" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Loamy</option>
+                <option value="SANDY" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Sandy</option>
+                <option value="BLACK" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Black</option>
+                <option value="RED" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Red</option>
+                <option value="SILT" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Silt</option>
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>Irrigation Source</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-primary)' }}>Irrigation Source</label>
               <select 
                 name="irrigation_source"
                 value={profileForm.irrigation_source}
                 onChange={handleProfileChange}
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)' }}
               >
-                <option value="">Select Irrigation Source</option>
-                <option value="RAINFED">Rainfed</option>
-                <option value="BOREWELL">Borewell</option>
-                <option value="CANAL">Canal</option>
-                <option value="DRIP">Drip</option>
-                <option value="SPRINKLER">Sprinkler</option>
+                <option value="" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Select Irrigation Source</option>
+                <option value="RAINFED" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Rainfed</option>
+                <option value="BOREWELL" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Borewell</option>
+                <option value="CANAL" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Canal</option>
+                <option value="DRIP" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Drip</option>
+                <option value="SPRINKLER" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>Sprinkler</option>
               </select>
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>Farmer Category</label>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-primary)' }}>Farmer Category</label>
             <input 
               type="text" 
               name="category"

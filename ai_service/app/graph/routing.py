@@ -3,7 +3,7 @@ Dynamic routing — conditional edges + Send() for parallel agent dispatch.
 NO executor node. LangGraph orchestrates via edges.
 
 Key routing functions:
-  - route_after_intent → greeting | conversational | planner | context_retrieval
+  - route_after_intent → greeting | data_retrieval | data_analysis | conversational | planner | context_retrieval
   - route_after_validation → dispatch agents or conversational
   - route_after_agent → next group, human_intervention, manual_review, or summary
   - route_after_intervention → re-route based on state
@@ -47,6 +47,8 @@ def route_after_intent(state: FasalSaathiState) -> str:
     intent = state.get("intent", "conversational")
     route_map = {
         "greeting": "greeting",
+        "data_retrieval": "data_retrieval",
+        "data_analysis": "data_analysis",
         "workflow": "planner",
         "follow_up": "context_retrieval",
         "conversational": "conversational",

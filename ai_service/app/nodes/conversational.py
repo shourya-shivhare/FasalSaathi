@@ -26,8 +26,8 @@ GREETING_RESPONSE = (
 )
 
 CONVERSATIONAL_PROMPT = """\
-You are FasalSaathi, an expert Indian agricultural AI assistant.
-You help farmers with crop advice, market prices, pest management, and government schemes.
+You are FasalSaathi, a personal farm assistant for Indian farmers.
+You help with crop advice, market prices, pest management, and government schemes.
 
 {language_directive}
 
@@ -45,10 +45,28 @@ CONVERSATION HISTORY:
 
 USER QUERY: {query}
 
-Provide a helpful, farmer-friendly response. Use simple language.
-If the query is about something specific (weather, crops, etc.), provide useful information.
-If you need more details, ask clearly.
-Keep responses concise but informative.
+CRITICAL DATA-FIRST RULES (MUST follow in order):
+
+1. DATA RETRIEVAL PRIORITY: If the farmer is asking about THEIR OWN data
+   (farms, crops, pests, profile, land, scans) AND actual data exists in
+   FARM CONTEXT above — you MUST present that actual data first.
+   NEVER generate generic advice when actual records exist.
+
+2. If FARM CONTEXT shows farms, crops, or pest data — reference the
+   ACTUAL names, areas, soil types, and stages from the data above.
+   NEVER invent farm names, crop names, or pest detections.
+
+3. If FARM CONTEXT shows "No farm data available" or is empty,
+   acknowledge it honestly: "I couldn't find any farms/crops registered
+   in your account."
+
+4. ONLY after presenting actual data, you MAY offer additional insights
+   or recommendations based on that data.
+
+5. For educational/general questions (not about personal data), provide
+   helpful agricultural knowledge using simple language.
+
+6. Keep responses concise but informative. Use bullet points for lists.
 """
 
 
@@ -89,19 +107,47 @@ async def conversational_node(state: FasalSaathiState, config: RunnableConfig) -
         else "Respond in English."
     )
 
-    # Build farm context summary
+    # Build farm context summary — include actual data for data-first safety net
     farm_context_parts = []
+
+    # Include farm details
+    farms = farmer_profile.get("farms", [])
+    if farms:
+        farm_lines = [
+            f"- {f.get('farm_name', '?')}: {f.get('total_area', '?')} acres, "
+            f"Soil: {f.get('soil_type', '?')}, Irrigation: {f.get('irrigation_source', '?')}, "
+            f"Active crops: {f.get('active_crop_count', 0)}"
+            for f in farms[:10]
+        ]
+        farm_context_parts.append("Farms:\n" + "\n".join(farm_lines))
+
     active_crops = farmer_profile.get("active_crops", [])
     if active_crops:
-        crop_lines = [f"- {c.get('crop_name', '?')} ({c.get('crop_variety', '')}), Stage: {c.get('current_stage', '?')}" for c in active_crops[:5]]
+        crop_lines = [
+            f"- {c.get('crop_name', '?')} ({c.get('crop_variety', '')}), "
+            f"Stage: {c.get('current_stage', '?')}, Farm: {c.get('farm_name', '?')}"
+            for c in active_crops[:10]
+        ]
         farm_context_parts.append("Active Crops:\n" + "\n".join(crop_lines))
-    recent_pests = farmer_profile.get("recent_pests", [])
-    if recent_pests:
-        pest_lines = [f"- {p.get('disease_name', '?')} ({p.get('created_at', '')})" for p in recent_pests[:3]]
-        farm_context_parts.append("Recent Pests:\n" + "\n".join(pest_lines))
+
+    # Include pest history
+    pest_data = farmer_profile.get("pest_history") or farmer_profile.get("recent_pests", [])
+    if pest_data:
+        pest_lines = [
+            f"- {p.get('disease_name', '?')} (Confidence: {p.get('confidence', '?')}, "
+            f"Date: {p.get('created_at', '?')}, Farm: {p.get('farm_name', '?')})"
+            for p in pest_data[:5]
+        ]
+        farm_context_parts.append("Pest History:\n" + "\n".join(pest_lines))
+
     farm_summary = farmer_profile.get("farm_summary", {})
     if farm_summary:
-        farm_context_parts.append(f"Farm Summary: {farm_summary.get('total_farms', 0)} farms, {farm_summary.get('active_crop_count', 0)} active crops")
+        farm_context_parts.append(
+            f"Farm Summary: {farm_summary.get('total_farms', 0)} farms, "
+            f"{farm_summary.get('total_registered_area', 0)} acres total, "
+            f"{farm_summary.get('active_crop_count', 0)} active crops, "
+            f"{farm_summary.get('recent_pest_count', 0)} pest detections"
+        )
     farm_context_str = "\n".join(farm_context_parts) if farm_context_parts else "No farm data available."
 
     prompt = CONVERSATIONAL_PROMPT.format(

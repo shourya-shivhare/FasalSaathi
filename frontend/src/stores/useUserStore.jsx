@@ -4,21 +4,24 @@ import { authApi, api } from '../lib/api.jsx';
 
 function mergeFarmerFromUser(prev, user) {
   if (!user) return prev;
+  const fp = user.farmer_profile || {};
   return {
     ...prev,
-    name: user.name ?? prev.name,
+    name: fp.full_name ?? user.name ?? prev.name,
     email: user.email ?? prev.email,
-    phone: user.phone ?? prev.phone,
-    state: user.state ?? prev.state,
-    district: user.district ?? prev.district,
-    village: user.village ?? prev.village,
-    age: user.age ?? prev.age,
-    gender: user.gender ?? prev.gender,
-    land_size_acres: user.land_size_acres ?? prev.land_size_acres,
-    crops_grown: user.crops_grown ?? prev.crops_grown,
-    category: user.category ?? prev.category,
-    annual_income: user.annual_income ?? prev.annual_income,
-    preferred_language: user.preferred_language ?? prev.preferred_language,
+    phone: user.phone_number ?? user.phone ?? prev.phone,
+    state: fp.state ?? prev.state,
+    district: fp.district ?? prev.district,
+    village: fp.village ?? prev.village,
+    age: fp.age ?? prev.age,
+    gender: fp.gender ?? prev.gender,
+    land_size_acres: fp.farm_size_acres ?? fp.land_size_acres ?? prev.land_size_acres,
+    crops_grown: fp.crops_grown ?? prev.crops_grown,
+    category: fp.category ?? prev.category,
+    annual_income: fp.annual_income ?? prev.annual_income,
+    preferred_language: fp.preferred_language ?? prev.preferred_language,
+    soil_type: fp.soil_type ?? prev.soil_type,
+    irrigation_source: fp.irrigation_source ?? prev.irrigation_source,
   };
 }
 
@@ -41,6 +44,8 @@ export const useUserStore = create(
         crops_grown: [],
         category: '',
         annual_income: null,
+        soil_type: '',
+        irrigation_source: '',
       },
       isOnboarded: false,
       language: 'en',
@@ -77,12 +82,14 @@ export const useUserStore = create(
 
       setAccessToken: (token) => set({ accessToken: token }),
 
-      sendOtp: async (phone, channel = 'SMS') => {
-        return authApi.sendOtp(phone, channel);
+      // Signup Step 1: Send OTP
+      signupSendOtp: async (username, phone, password, channel = 'SMS') => {
+        return authApi.signupSendOtp(username, phone, password, channel);
       },
 
-      verifyOtp: async (phone, otp, deviceName = 'Web Browser', isTrusted = false) => {
-        const res = await authApi.verifyOtp(phone, otp, deviceName, isTrusted);
+      // Signup Step 2: Verify OTP and create user
+      signupVerify: async (username, phone, password, otp, deviceName = 'Web Browser', isTrusted = false) => {
+        const res = await authApi.signupVerify(username, phone, password, otp, deviceName, isTrusted);
         set({
           accessToken: res.access_token,
           isOnboarded: res.profile_completed || false,
@@ -95,8 +102,9 @@ export const useUserStore = create(
         return res;
       },
 
-      login: async (email, password) => {
-        const res = await authApi.login(email, password);
+      // Login: Verify credentials and retrieve tokens directly
+      login: async (username, password, deviceName = 'Web Browser', isTrusted = false) => {
+        const res = await authApi.login(username, password, deviceName, isTrusted);
         set({
           accessToken: res.access_token,
           isOnboarded: res.profile_completed || false,
@@ -106,24 +114,7 @@ export const useUserStore = create(
           user,
           farmer: mergeFarmerFromUser(get().farmer, user),
         });
-      },
-
-      register: async ({ name, email, password, phone }) => {
-        const res = await authApi.register({
-          name,
-          email,
-          password,
-          phone,
-        });
-        set({
-          accessToken: res.access_token,
-          isOnboarded: res.profile_completed || false,
-        });
-        const user = await authApi.getMe(res.access_token);
-        set({
-          user,
-          farmer: mergeFarmerFromUser(get().farmer, user),
-        });
+        return res;
       },
 
       completeOnboarding: async (data) => {
@@ -131,9 +122,9 @@ export const useUserStore = create(
         // Map UI fields to backend fields
         const profileUpdates = {
           state: data.state,
-          district: data.village || data.district,
+          district: data.district || data.village || '',
           village: data.village || '',
-          land_size_acres: parseFloat(data.land_size_acres) || 0,
+          farm_size_acres: parseFloat(data.land_size_acres) || 0,
           crops_grown: data.crops_grown || [],
           age: parseInt(data.age) || null,
           gender: data.gender || '',
@@ -142,13 +133,13 @@ export const useUserStore = create(
 
         if (token) {
           try {
-            const updatedUser = await api.updateUserProfile(token, profileUpdates);
-            set({
-              user: updatedUser,
-              farmer: mergeFarmerFromUser(get().farmer, updatedUser),
-              isOnboarded: true,
-              language: data.language || get().language,
-            });
+             const updatedUser = await api.updateUserProfile(token, profileUpdates);
+             set({
+               user: updatedUser,
+               farmer: mergeFarmerFromUser(get().farmer, updatedUser),
+               isOnboarded: true,
+               language: data.language || get().language,
+             });
           } catch (err) {
             console.error('Failed to sync profile to backend:', err);
             // Still mark as onboarded locally to allow access
@@ -161,9 +152,13 @@ export const useUserStore = create(
 
       updateFarmerProfile: async (updates) => {
         const token = get().accessToken;
+        const mapped = { ...updates };
+        if ('land_size_acres' in mapped) {
+          mapped.farm_size_acres = parseFloat(mapped.land_size_acres) || 0;
+        }
         if (token) {
           try {
-            const updatedUser = await api.updateUserProfile(token, updates);
+            const updatedUser = await api.updateUserProfile(token, mapped);
             set({
               user: updatedUser,
               farmer: mergeFarmerFromUser(get().farmer, updatedUser),

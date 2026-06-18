@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from backend.app.api.v1.endpoints import (
     auth, users, crops, weather, chat, detect, schemes, agents, market,
-    farms, crop_cycles, journal, pest_history, notifications, admin
+    farms, crop_cycles, journal, pest_history, admin
 )
 
 api_router = APIRouter()
@@ -20,6 +20,6 @@ api_router.include_router(farms.router,         prefix="/farms",         tags=["
 api_router.include_router(crop_cycles.router,   prefix="/crop-cycles",   tags=["Crop Cycles"])
 api_router.include_router(journal.router,       prefix="/journal",       tags=["Journal"])
 api_router.include_router(pest_history.router,  prefix="/pest-history",  tags=["Pest History"])
-api_router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
+
 
 

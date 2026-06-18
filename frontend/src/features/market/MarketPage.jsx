@@ -6,6 +6,9 @@ import {
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { PriceTrendChart } from './components/PriceTrendChart';
 import { useFieldStore } from '../../stores/useFieldStore.jsx';
+import { useFarmStore } from '../../stores/useFarmStore.jsx';
+import { useCropCycleStore } from '../../stores/useCropCycleStore.jsx';
+import { useUserStore } from '../../stores/useUserStore.jsx';
 import api from '../../lib/api.jsx';
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -34,26 +37,32 @@ const generate30Day = () => {
   return data;
 };
 
-const riskColors = { LOW: '#10B981', MODERATE: '#F59E0B', HIGH: '#EF4444' };
-const riskBg = { LOW: '#D1FAE5', MODERATE: '#FEF3C7', HIGH: '#FEE2E2' };
-
 // ── Component ───────────────────────────────────────────────────────────────
 const MarketPage = () => {
-  const { getActiveField, fields } = useFieldStore();
-  const activeField = getActiveField();
+  const { farms } = useFarmStore();
+  const { cycles } = useCropCycleStore();
+  const { activeFieldId } = useFieldStore();
+  const { farmer } = useUserStore();
 
-  // Derive user location
-  const userState = activeField?.location?.state || activeField?.state || 'Delhi';
-  const userDistrict = activeField?.location?.district || activeField?.district || '';
+  const activeField = farms.find(f => f.id === activeFieldId) || farms[0] || null;
+  const activeCycle = activeField ? cycles.find(c => c.farm_id === activeField.id && c.status === 'ACTIVE') : null;
 
-  // Build commodity list: default 8 + crops from user fields, deduplicated
-  const fieldCrops = (fields || [])
-    .map(f => f.crop || f.cropType)
+  // Derive user location — prioritize user profile, then active farm field, then fallback
+  const userState = farmer?.state || activeField?.state || 'Delhi';
+  const userDistrict = farmer?.district || activeField?.district || '';
+
+  // Build commodity list: default 8 + crops from user profile + active field cycles, deduplicated
+  const profileCrops = (farmer?.crops_grown || [])
     .filter(Boolean)
     .filter(c => !DEFAULT_COMMODITIES.includes(c));
-  const allCommodities = [...DEFAULT_COMMODITIES, ...new Set(fieldCrops)];
+  const fieldCrops = cycles
+    .filter(c => c.status === 'ACTIVE')
+    .map(c => c.crop_name)
+    .filter(Boolean)
+    .filter(c => !DEFAULT_COMMODITIES.includes(c));
+  const allCommodities = [...DEFAULT_COMMODITIES, ...new Set([...profileCrops, ...fieldCrops])];
 
-  const [selectedCrop, setSelectedCrop] = useState(activeField?.crop || 'Wheat');
+  const [selectedCrop, setSelectedCrop] = useState(activeCycle?.crop_name || 'Wheat');
   const [analysisData, setAnalysisData] = useState(null);
   const [rawPrices, setRawPrices] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -129,12 +138,12 @@ const MarketPage = () => {
   if (error && !analysisData && !rawPrices) {
     return (
       <PageWrapper>
-        <div style={{ background: '#FEF2F2', borderRadius: '20px', border: '1px solid #FECACA', padding: '32px', textAlign: 'center', marginTop: '40px' }}>
-          <AlertCircle size={40} color="#EF4444" style={{ marginBottom: '12px' }} />
-          <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.2rem', fontWeight: 700, color: '#991B1B', margin: '0 0 8px' }}>Unable to fetch market data</h2>
-          <p style={{ color: '#7F1D1D', fontSize: '0.9rem', marginBottom: '20px' }}>{error}</p>
+        <div style={{ background: 'var(--color-danger-bg)', borderRadius: '20px', border: '1px solid var(--color-danger)', padding: '32px', textAlign: 'center', marginTop: '40px' }}>
+          <AlertCircle size={40} color="var(--color-danger)" style={{ marginBottom: '12px' }} />
+          <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-danger)', margin: '0 0 8px' }}>Unable to fetch market data</h2>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', marginBottom: '20px' }}>{error}</p>
           <button onClick={() => fetchMarketData(selectedCrop)} style={{
-            padding: '10px 24px', borderRadius: '12px', border: 'none', background: '#EF4444', color: '#fff',
+            padding: '10px 24px', borderRadius: '12px', border: 'none', background: 'var(--color-danger)', color: 'var(--color-on-danger)',
             fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px'
           }}>
             <RefreshCw size={15} /> Retry
@@ -148,7 +157,7 @@ const MarketPage = () => {
     <PageWrapper>
       {/* Fallback banner */}
       {!isLiveData && (
-        <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '12px', padding: '10px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#92400E' }}>
+        <div style={{ background: 'var(--color-warning-bg)', border: '1px solid var(--color-warning-border)', borderRadius: '12px', padding: '10px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--color-warning-text)' }}>
           <AlertCircle size={16} /> Live data unavailable — showing estimates
         </div>
       )}
@@ -170,19 +179,19 @@ const MarketPage = () => {
             onChange={e => setSelectedCrop(e.target.value)}
             style={{
               padding: '10px 16px', borderRadius: '12px', border: '1.5px solid var(--color-border)',
-              background: '#fff', fontFamily: "'Plus Jakarta Sans',sans-serif",
+              background: 'var(--color-bg-secondary)', fontFamily: "'Plus Jakarta Sans',sans-serif",
               fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)',
               cursor: 'pointer', appearance: 'auto',
             }}
           >
-            {allCommodities.map(c => <option key={c} value={c}>{c}</option>)}
+            {allCommodities.map(c => <option key={c} value={c} style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>{c}</option>)}
           </select>
           <button
             id="refresh-btn"
             onClick={() => fetchMarketData(selectedCrop)}
             style={{
               display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
-              border: '1.5px solid var(--color-border)', borderRadius: '12px', background: '#fff',
+              border: '1.5px solid var(--color-border)', borderRadius: '12px', background: 'var(--color-bg-secondary)',
               color: 'var(--color-accent-primary)', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer',
             }}
           >
@@ -193,13 +202,13 @@ const MarketPage = () => {
 
       {/* HERO PRICE CARD */}
       <div style={{
-        background: '#fff', borderRadius: '20px', border: '1px solid var(--color-border)',
-        borderLeft: '5px solid #FACC15', padding: '28px 32px', marginBottom: '20px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.07)', display: 'flex', alignItems: 'center',
+        background: 'var(--color-bg-secondary)', borderRadius: '20px', border: '1px solid var(--color-border)',
+        borderLeft: '5px solid var(--color-accent-secondary)', padding: '28px 32px', marginBottom: '20px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'linear-gradient(135deg,#FEF3C7,#FDE68A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', flexShrink: 0 }}>{icon}</div>
+          <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'var(--color-section-header-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', flexShrink: 0 }}>{icon}</div>
           <div>
             <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Current Mandi Price</div>
             <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-accent-primary)', lineHeight: 1.1 }}>
@@ -209,15 +218,15 @@ const MarketPage = () => {
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-end' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: diff >= 0 ? '#D1FAE5' : '#FEE2E2', borderRadius: '12px', padding: '8px 16px' }}>
-            {diff >= 0 ? <ArrowUpRight size={18} color="#065F46" /> : <TrendingDown size={18} color="#DC2626" />}
-            <span style={{ fontWeight: 700, color: diff >= 0 ? '#065F46' : '#DC2626', fontSize: '0.95rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: diff >= 0 ? 'var(--color-success-bg)' : 'var(--color-danger-bg)', borderRadius: '12px', padding: '8px 16px' }}>
+            {diff >= 0 ? <ArrowUpRight size={18} color="var(--color-success-text)" /> : <TrendingDown size={18} color="var(--color-danger)" />}
+            <span style={{ fontWeight: 700, color: diff >= 0 ? 'var(--color-success-text)' : 'var(--color-danger)', fontSize: '0.95rem' }}>
               ₹{Math.abs(diff)} {diff >= 0 ? 'above' : 'below'} MSP
             </span>
           </div>
           {analysisData?.current_market_analysis?.price_trend && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-              {analysisData.current_market_analysis.price_trend === 'rising' ? <TrendingUp size={14} color="#10B981" /> : analysisData.current_market_analysis.price_trend === 'falling' ? <TrendingDown size={14} color="#EF4444" /> : <Activity size={14} color="#6B7280" />}
+              {analysisData.current_market_analysis.price_trend === 'rising' ? <TrendingUp size={14} color="var(--color-success-text)" /> : analysisData.current_market_analysis.price_trend === 'falling' ? <TrendingDown size={14} color="var(--color-danger)" /> : <Activity size={14} color="var(--color-text-secondary)" />}
               Trend: {analysisData.current_market_analysis.price_trend}
             </div>
           )}
@@ -233,14 +242,14 @@ const MarketPage = () => {
               value: analysisData.current_market_analysis?.market_sentiment || 'N/A',
               sub: 'Market mood',
               icon: Activity,
-              color: analysisData.current_market_analysis?.market_sentiment === 'bullish' ? '#10B981' : analysisData.current_market_analysis?.market_sentiment === 'bearish' ? '#EF4444' : '#6B7280',
+              color: analysisData.current_market_analysis?.market_sentiment === 'bullish' ? 'var(--color-success)' : analysisData.current_market_analysis?.market_sentiment === 'bearish' ? 'var(--color-danger)' : 'var(--color-text-secondary)',
             },
             {
               label: 'Risk Level',
               value: analysisData.risk_level || 'N/A',
               sub: 'Current assessment',
               icon: ShieldCheck,
-              color: riskColors[analysisData.risk_level] || '#6B7280',
+              color: analysisData.risk_level === 'LOW' ? 'var(--color-success)' : analysisData.risk_level === 'MODERATE' ? 'var(--color-warning)' : 'var(--color-danger)',
             },
             {
               label: 'Confidence',
@@ -250,7 +259,7 @@ const MarketPage = () => {
               color: '#3B82F6',
             },
           ].map(stat => (
-            <div key={stat.label} style={{ background: '#fff', borderRadius: '16px', border: '1px solid var(--color-border)', padding: '18px 22px', boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+            <div key={stat.label} style={{ background: 'var(--color-bg-secondary)', borderRadius: '16px', border: '1px solid var(--color-border)', padding: '18px 22px', boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <stat.icon size={18} color={stat.color} />
@@ -267,14 +276,14 @@ const MarketPage = () => {
       {/* AI RECOMMENDATION CARD */}
       {analysisData && (
         <div style={{
-          background: 'linear-gradient(135deg,#1A7A40,#2D8F55)', borderRadius: '20px',
+          background: 'linear-gradient(135deg, var(--sidebar-bg), var(--color-accent-primary))', borderRadius: '20px',
           padding: '28px 32px', color: '#fff', marginBottom: '20px',
           boxShadow: '0 4px 24px rgba(26,122,64,0.3)',
         }}>
           <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.1rem', fontWeight: 700, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             🤖 AI Recommendation
           </h3>
-          <p style={{ fontSize: '1.05rem', fontWeight: 600, lineHeight: 1.5, margin: '0 0 12px', color: '#E5FFF0' }}>
+          <p style={{ fontSize: '1.05rem', fontWeight: 600, lineHeight: 1.5, margin: '0 0 12px', color: 'var(--color-success-bg)' }}>
             {analysisData.selling_recommendation}
           </p>
           <p style={{ fontSize: '0.9rem', lineHeight: 1.5, margin: '0 0 10px', color: 'rgba(255,255,255,0.85)' }}>
@@ -288,7 +297,7 @@ const MarketPage = () => {
 
       {/* NEARBY MARKETS TABLE */}
       {analysisData?.nearby_markets?.length > 0 && (
-        <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid var(--color-border)', padding: '24px 28px', marginBottom: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
+        <div style={{ background: 'var(--color-bg-secondary)', borderRadius: '20px', border: '1px solid var(--color-border)', padding: '24px 28px', marginBottom: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', overflowX: 'auto' }}>
           <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 20px' }}>
             🏪 Nearby Markets Comparison
           </h2>
@@ -304,10 +313,10 @@ const MarketPage = () => {
               {analysisData.nearby_markets.map((mkt, i) => (
                 <tr key={`${mkt.market_name}-${i}`} style={{
                   borderBottom: '1px solid var(--color-border)',
-                  background: i === 0 ? '#F0FDF4' : i % 2 === 0 ? 'transparent' : 'var(--color-bg-primary)',
+                  background: i === 0 ? 'var(--color-success-bg)' : i % 2 === 0 ? 'transparent' : 'var(--color-bg-primary)',
                 }}>
-                  <td style={{ padding: '12px 14px', fontWeight: i === 0 ? 700 : 600, color: 'var(--color-text-primary)' }}>
-                    {i === 0 && <span style={{ fontSize: '0.7rem', background: '#10B981', color: '#fff', padding: '2px 6px', borderRadius: '4px', marginRight: '6px' }}>BEST</span>}
+                  <td style={{ padding: '12px 14px', fontWeight: i === 0 ? 700 : 600, color: i === 0 ? 'var(--color-success-text)' : 'var(--color-text-primary)' }}>
+                    {i === 0 && <span style={{ fontSize: '0.7rem', background: 'var(--color-success)', color: '#fff', padding: '2px 6px', borderRadius: '4px', marginRight: '6px' }}>BEST</span>}
                     {mkt.market_name}
                   </td>
                   <td style={{ padding: '12px 14px', color: 'var(--color-text-secondary)' }}>{mkt.district}</td>
@@ -322,7 +331,7 @@ const MarketPage = () => {
       )}
 
       {/* PRICE TREND CHART */}
-      <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid var(--color-border)', padding: '24px 28px', marginBottom: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+      <div style={{ background: 'var(--color-bg-secondary)', borderRadius: '20px', border: '1px solid var(--color-border)', padding: '24px 28px', marginBottom: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
             📈 Price Trend
@@ -343,7 +352,7 @@ const MarketPage = () => {
       </div>
 
       {/* MSP TABLE */}
-      <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid var(--color-border)', padding: '24px 28px', marginBottom: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
+      <div style={{ background: 'var(--color-bg-secondary)', borderRadius: '20px', border: '1px solid var(--color-border)', padding: '24px 28px', marginBottom: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', overflowX: 'auto' }}>
         <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 20px' }}>
           📋 MSP Reference Table
         </h2>
@@ -363,7 +372,7 @@ const MarketPage = () => {
                 </td>
                 <td style={{ padding: '12px 14px', color: 'var(--color-text-secondary)' }}>₹{row.msp.toLocaleString()}</td>
                 <td style={{ padding: '12px 14px' }}>
-                  <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, background: '#E0F2FE', color: '#0369A1' }}>
+                  <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, background: 'var(--color-section-header-bg)', color: 'var(--color-accent-primary)' }}>
                     Official MSP
                   </span>
                 </td>
@@ -375,14 +384,14 @@ const MarketPage = () => {
 
       {/* REASONING CARD */}
       {analysisData?.reasoning?.length > 0 && (
-        <div style={{ background: 'linear-gradient(135deg,#1A7A40,#2D8F55)', borderRadius: '20px', padding: '28px 32px', color: '#fff' }}>
+        <div style={{ background: 'linear-gradient(135deg, var(--sidebar-bg), var(--color-accent-primary))', borderRadius: '20px', padding: '28px 32px', color: '#fff' }}>
           <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '1.1rem', fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             📊 Analysis Reasoning
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             {analysisData.reasoning.map((reason, i) => (
-              <div key={i} style={{ display: 'flex', gap: '10px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px 14px' }}>
-                <span style={{ color: '#86EFAC', fontWeight: 700, flexShrink: 0 }}>•</span>
+              <div key={i} style={{ display: 'flex', gap: '10px', background: 'rgba(255,255,255,0.08)', borderRadius: '12px', padding: '12px 14px' }}>
+                <span style={{ color: 'var(--color-accent-secondary)', fontWeight: 700, flexShrink: 0 }}>•</span>
                 <span style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.9)', lineHeight: 1.5 }}>{reason}</span>
               </div>
             ))}

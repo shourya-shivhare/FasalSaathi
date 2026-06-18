@@ -5,6 +5,15 @@ import { ProgressBar } from '../../../components/ui/ProgressBar';
 import { NUTRIENT_THRESHOLDS } from '../../../lib/constants.jsx';
 
 const SoilHealthGrid = ({ soil }) => {
+  if (!soil || soil.N === null || soil.N === undefined) {
+    return (
+      <Card className="p-6 text-center theme-text-secondary">
+        <p className="font-semibold text-base mb-1">Data Not Available</p>
+        <p className="text-sm">No soil health metrics recorded for this farm.</p>
+      </Card>
+    );
+  }
+
   const getNutrientStatus = (nutrient, value) => {
     const threshold = NUTRIENT_THRESHOLDS[nutrient];
     if (!threshold) return 'good';

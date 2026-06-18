@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     # AI Service
     AI_SERVICE_URL: str = "http://localhost:8001"
 
+    # Rate Limiting
+    ENABLE_RATE_LIMIT: bool = True
+
     class Config:
         import os
         from pathlib import Path

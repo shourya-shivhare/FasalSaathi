@@ -11,7 +11,6 @@ import { useFieldData } from './hooks/useFieldData';
 import { useUserStore } from '../../stores/useUserStore.jsx';
 import { useFarmStore } from '../../stores/useFarmStore.jsx';
 import { useCropCycleStore } from '../../stores/useCropCycleStore.jsx';
-import { useNotificationStore } from '../../stores/useNotificationStore.jsx';
 
 const StatCard = ({ icon: Icon, label, value, sub }) => (
   <div style={{
@@ -66,9 +65,10 @@ const DashboardPage = () => {
   const { activeField, weather, soil, irrigation, hasFields, isLoading, fields, scanHistory } = useFieldData();
   const { farms, fetchFarms } = useFarmStore();
   const { cycles, fetchCycles } = useCropCycleStore();
-  const { notifications } = useNotificationStore();
-
-  useEffect(() => { fetchFarms(); fetchCycles(); }, []);
+  useEffect(() => { 
+    fetchFarms(); 
+    fetchCycles(); 
+  }, []);
 
   // Derive real stats from actual data
   const stats = useMemo(() => {
@@ -425,42 +425,6 @@ const DashboardPage = () => {
         </div>
       )}
 
-      {/* Market & Pest Alerts from Notifications */}
-      {notifications.filter((n) => !n.is_read).length > 0 && (
-        <div style={{
-          background: 'var(--color-surface)', borderRadius: '16px',
-          border: '1px solid var(--color-border)', padding: '20px 24px',
-          marginBottom: '24px', boxShadow: '0 1px 8px rgba(26,122,64,0.07)',
-        }}>
-          <h2 style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '1.05rem',
-            fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 14px',
-          }}>
-            ⚡ Recent Alerts
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {notifications.filter((n) => !n.is_read).slice(0, 5).map((n) => (
-              <div key={n.id} style={{
-                display: 'flex', alignItems: 'center', gap: '12px',
-                padding: '10px 14px', borderRadius: '10px',
-                background: 'var(--color-bg-primary)', border: '1px solid var(--color-border)',
-                borderLeft: `3px solid ${n.notification_type === 'PEST_ALERT' ? '#ef4444' : '#f59e0b'}`,
-              }}>
-                <span style={{ fontSize: '1.2rem' }}>
-                  {n.notification_type === 'PEST_ALERT' ? '🐛' : '📊'}
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>{n.title}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.message}</div>
-                </div>
-                <span style={{ fontSize: '0.68rem', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
-                  {new Date(n.created_at).toLocaleDateString()}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Two-column: Weather + Irrigation */}
       {weather && hasFields && (

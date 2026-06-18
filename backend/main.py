@@ -16,7 +16,7 @@ from backend.app.api.v1.router import api_router
 
 #database properites
 from backend.app.db.database import Base, engine
-from backend.app.models import user, crop, farm, crop_cycle, crop_journal, pest_detection_history, notification
+from backend.app.models import user, crop, farm, crop_cycle, crop_journal, pest_detection_history
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

@@ -1,25 +1,22 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, model_validator
 from backend.app.models.enums import AccountStatus, UserRole, Gender, PreferredLanguage, SoilType, IrrigationSource
 from backend.app.schemas.farmer_profile import FarmerProfileResponse
-from typing import List
 
 class UserBase(BaseModel):
-    phone_number: Optional[str] = None
-    email: Optional[EmailStr] = None
-    is_phone_verified: bool = False
-    account_status: AccountStatus = AccountStatus.ACTIVE
+    username: str
+    phone_number: str
+    status: AccountStatus = AccountStatus.ACTIVE
     role: UserRole = UserRole.FARMER
-    last_login_at: Optional[datetime] = None
 
 class UserCreate(UserBase):
-    phone_number: str
+    password: str
 
 class UserUpdate(BaseModel):
+    username: Optional[str] = None
     phone_number: Optional[str] = None
-    email: Optional[EmailStr] = None
-    account_status: Optional[AccountStatus] = None
+    status: Optional[AccountStatus] = None
     role: Optional[UserRole] = None
 
     # Farmer profile fields

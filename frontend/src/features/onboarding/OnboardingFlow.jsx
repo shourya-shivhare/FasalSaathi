@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Check, Leaf, Globe, MapPin, Wheat, ChevronRight } from 'lucide-react';
 import { useUserStore } from '../../stores/useUserStore.jsx';
 import { useFieldStore } from '../../stores/useFieldStore.jsx';
+import { useFarmStore } from '../../stores/useFarmStore.jsx';
+import { useCropCycleStore } from '../../stores/useCropCycleStore.jsx';
 
 const LANGUAGES = [
   { code: 'HINDI', name: 'हिंदी', eng: 'Hindi', flag: '🇮🇳' },
@@ -68,14 +70,39 @@ const OnboardingFlow = ({ onComplete }) => {
     });
     
     if (selectedCrops.length > 0 && fieldSize) {
-      addField({ 
-        name: 'Main Field', 
-        crop: selectedCrops[0], 
-        area: fieldSize, 
-        areaUnit: 'acres', 
-        soilType: 'Loamy', 
-        location: { village: location, district: district || location, state } 
-      });
+      const token = useUserStore.getState().accessToken;
+      if (token) {
+        try {
+          const farm = await useFarmStore.getState().createFarm({
+            farm_name: 'Main Farm',
+            state: state || 'Delhi',
+            district: district || location || 'Delhi',
+            village: location || 'Delhi',
+            total_area: parseFloat(fieldSize) || 0,
+            soil_type: 'LOAMY',
+            irrigation_source: 'BOREWELL'
+          });
+          
+          await useCropCycleStore.getState().createCycle({
+            farm_id: farm.id,
+            crop_name: selectedCrops[0],
+            crop_variety: 'Normal',
+            season: 'KHARIF',
+            current_stage: 'SEEDING'
+          });
+        } catch (err) {
+          console.error("Failed to create farm/cycle during onboarding:", err);
+        }
+      } else {
+        addField({ 
+          name: 'Main Field', 
+          crop: selectedCrops[0], 
+          area: fieldSize, 
+          areaUnit: 'acres', 
+          soilType: 'Loamy', 
+          location: { village: location, district: district || location, state } 
+        });
+      }
     }
     onComplete();
   };

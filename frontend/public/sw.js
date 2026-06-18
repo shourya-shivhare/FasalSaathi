@@ -72,46 +72,6 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// Push notifications
-self.addEventListener('push', (event) => {
-  const options = {
-    body: event.data ? event.data.text() : 'New update from FasalSaathi',
-    icon: '/favicon.svg',
-    badge: '/favicon.svg',
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    },
-    actions: [
-      {
-        action: 'explore',
-        title: 'Open App',
-        icon: '/favicon.svg'
-      },
-      {
-        action: 'close',
-        title: 'Close',
-        icon: '/favicon.svg'
-      }
-    ]
-  };
-
-  event.waitUntil(
-    self.registration.showNotification('FasalSaathi', options)
-  );
-});
-
-// Handle notification clicks
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  
-  if (event.action === 'explore') {
-    event.waitUntil(
-      clients.openWindow('/')
-    );
-  }
-});
 
 function doBackgroundSync() {
   // Handle background sync operations

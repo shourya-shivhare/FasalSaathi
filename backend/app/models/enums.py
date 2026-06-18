@@ -74,6 +74,3 @@ class PestDetectionSource(str, enum.Enum):
     MANUAL = "MANUAL"
     CHATBOT = "CHATBOT"
 
-class NotificationType(str, enum.Enum):
-    PEST_ALERT = "PEST_ALERT"
-    MARKET_ALERT = "MARKET_ALERT"

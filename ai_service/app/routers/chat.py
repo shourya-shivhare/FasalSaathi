@@ -242,7 +242,8 @@ def _build_farmer_profile(context: dict | None, session_id: str) -> dict:
             })
             # Forward structured farm management data
             for key in ("farms", "active_crops", "recent_pests",
-                        "recent_journal_entries", "farm_summary", "season_context"):
+                        "recent_journal_entries", "farm_summary", "season_context",
+                        "pest_history", "crop_history", "profile"):
                 if key in context:
                     profile[key] = context[key]
             # Derive crop_types from active_crops for backward compat

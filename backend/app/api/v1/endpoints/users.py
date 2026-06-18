@@ -38,8 +38,8 @@ def update_user_me(
     # 1. Update user model base fields
     if "phone_number" in update_data:
         current_user.phone_number = update_data["phone_number"]
-    if "email" in update_data:
-        current_user.email = update_data["email"]
+    if "username" in update_data:
+        current_user.username = update_data["username"]
         
     # 2. Get or create farmer profile record
     profile = current_user.farmer_profile
@@ -61,9 +61,6 @@ def update_user_me(
         if field in update_data:
             setattr(profile, field, update_data[field])
             profile_updated = True
-            # Sync full_name → User.name for display compatibility
-            if field == "full_name":
-                current_user.name = update_data[field]
                     
     if profile_updated:
         profile.profile_version += 1

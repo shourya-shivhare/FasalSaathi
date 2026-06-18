@@ -25,41 +25,35 @@ async function fetchJSON(url, options = {}) {
   return res.json();
 }
 
-/** Login / register / current user — uses JSON bodies (not OAuth2 form). */
+/** Login / register / current user — uses JSON bodies. */
 export const authApi = {
-  async login(email, password) {
+  // Signup Step 1: Send OTP
+  async signupSendOtp(username, phone_number, password, channel = 'SMS') {
+    return fetchJSON(`${API_BASE}/auth/signup/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, phone_number, password, channel }),
+    });
+  },
+  // Signup Step 2: Verify OTP and create user
+  async signupVerify(username, phone_number, password, otp, device_name = 'Web Browser', is_trusted_device = false) {
+    return fetchJSON(`${API_BASE}/auth/signup/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, phone_number, password, otp, device_name, is_trusted_device }),
+    });
+  },
+  // Login: Verify credentials and receive tokens directly
+  async login(username, password, device_name = 'Web Browser', is_trusted_device = false) {
     return fetchJSON(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-  },
-  async register({ name, email, password, phone }) {
-    const body = { name, email, password };
-    if (phone && phone.trim()) body.phone = phone.trim();
-    return fetchJSON(`${API_BASE}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ username, password, device_name, is_trusted_device }),
     });
   },
   async getMe(accessToken) {
     return fetchJSON(`${API_BASE}/users/me`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-    });
-  },
-  async sendOtp(phone_number, channel = 'SMS') {
-    return fetchJSON(`${API_BASE}/auth/send-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone_number, channel }),
-    });
-  },
-  async verifyOtp(phone_number, otp, device_name = 'Web Browser', is_trusted_device = false) {
-    return fetchJSON(`${API_BASE}/auth/verify-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone_number, otp, device_name, is_trusted_device }),
     });
   },
   async logout(accessToken) {
@@ -237,12 +231,20 @@ export const api = {
   },
 
   // ── Pest Detection — calls backend proxy which calls ai-service YOLO ───
-  async detectPest(imageFile) {
+  async detectPest(imageFile, accessToken = null) {
     const formData = new FormData();
     formData.append('file', imageFile);
     // Try backend first (has YOLO weight path setup), fallback to ai-service direct
     try {
-      return await fetchJSON(`${API_BASE}/detect/`, { method: 'POST', body: formData });
+      const headers = {};
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+      return await fetchJSON(`${API_BASE}/detect/`, { 
+        method: 'POST', 
+        headers,
+        body: formData 
+      });
     } catch {
       return await fetchJSON(`${AI_BASE}/detect`, { method: 'POST', body: formData });
     }
@@ -397,31 +399,14 @@ export const api = {
     });
   },
 
-  // ── Notifications ───────────────────────────────────────────────────────
-
-  async getNotifications(accessToken) {
-    return fetchJSON(`${API_BASE}/notifications/`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-  },
-
-  async getUnreadCount(accessToken) {
-    return fetchJSON(`${API_BASE}/notifications/unread-count`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-  },
-
-  async markNotificationRead(accessToken, notifId) {
-    return fetchJSON(`${API_BASE}/notifications/${notifId}/read`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-  },
-
-  async markAllNotificationsRead(accessToken) {
-    return fetchJSON(`${API_BASE}/notifications/mark-all-read`, {
+  async createPestHistory(accessToken, data) {
+    return fetchJSON(`${API_BASE}/pest-history/`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(data),
     });
   },
 };

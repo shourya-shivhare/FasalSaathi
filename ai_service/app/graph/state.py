@@ -42,11 +42,14 @@ class FarmerProfile(TypedDict, total=False):
     past_crops: list[str]
     preferred_language: str          # "ENGLISH" or "HINDI"
     # Farm Management context (injected by ContextBuilder)
-    farms: list[dict]
-    active_crops: list[dict]         # Contains crop_variety, last_updated_at
-    recent_pests: list[dict]
+    profile: dict                    # Nested profile data from ContextBuilder
+    farms: list[dict]                # Full farm details with active_crop_count
+    active_crops: list[dict]         # Active crop cycles with farm association
+    crop_history: list[dict]         # Historical completed/abandoned cycles
+    pest_history: list[dict]         # Pest detection records
+    recent_pests: list[dict]         # Alias for pest_history (backward compat)
     recent_journal_entries: list[dict]
-    farm_summary: dict
+    farm_summary: dict               # Aggregate stats
     season_context: dict
 
 
@@ -94,7 +97,7 @@ class FasalSaathiState(TypedDict, total=False):
     image_context: str | None
 
     # ── Routing ───────────────────────────────────────
-    intent: str                     # greeting | conversational | workflow | follow_up
+    intent: str                     # greeting | data_retrieval | data_analysis | conversational | workflow | follow_up
     sub_intents: list[str]
     intent_confidence: float
     pending_action: str | None      # waiting_for_image | waiting_for_info | None

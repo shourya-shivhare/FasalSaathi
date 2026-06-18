@@ -9,23 +9,27 @@ from backend.app.models.farmer_profile import FarmerProfile
 from backend.app.models.session import Session as UserSession
 from backend.app.models.enums import AccountStatus, UserRole
 from backend.app.schemas.auth import (
-    SendOtpRequest,
+    SignupSendOtpRequest,
+    SignupVerifyRequest,
+    LoginRequest,
     SendOtpResponse,
-    VerifyOtpRequest,
-    TokenResponse,
-    LoginRequest
+    TokenResponse
 )
 from backend.app.services.twilio_verify import twilio_verify_service
-from backend.app.services.rate_limiter import check_otp_send_limits, check_otp_verify_limits
+from backend.app.services.rate_limiter import (
+    check_otp_send_limits,
+    check_otp_verify_limits,
+    check_login_limits
+)
 from backend.app.services.audit import log_security_event, get_auth_metrics
 from backend.app.core import security
 from backend.app.core.config import settings
 
 router = APIRouter()
 
-@router.post("/send-otp", response_model=SendOtpResponse)
-def send_otp(
-    payload: SendOtpRequest,
+@router.post("/signup/send-otp", response_model=SendOtpResponse)
+def signup_send_otp(
+    payload: SignupSendOtpRequest,
     request: Request,
     db: Session = Depends(deps.get_db)
 ):
@@ -35,21 +39,32 @@ def send_otp(
     # 1. Enforce rate limits
     check_otp_send_limits(db, payload.phone_number, ip_address)
     
-    # 2. Call Twilio Verify API
+    # 2. Validate uniqueness
+    existing_user_name = db.query(User).filter(User.username == payload.username).first()
+    if existing_user_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username is already registered."
+        )
+        
+    existing_user_phone = db.query(User).filter(User.phone_number == payload.phone_number).first()
+    if existing_user_phone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phone number is already registered."
+        )
+        
+    # 3. Call Twilio Verify API
     status_msg = twilio_verify_service.send_otp(payload.phone_number, payload.channel.value.lower())
     
-    # 3. Log security event
-    # Find user if exists to link event
-    user = db.query(User).filter(User.phone_number == payload.phone_number).first()
-    user_id = user.id if user else None
-    
+    # 4. Log security event
     log_security_event(
         db=db,
         event_type="OTP_SENT",
-        user_id=user_id,
+        user_id=None,
         ip_address=ip_address,
         user_agent=user_agent,
-        metadata_json={"phone_number": payload.phone_number, "channel": payload.channel.value}
+        metadata_json={"phone_number": payload.phone_number, "channel": payload.channel.value, "flow": "signup"}
     )
     
     return {
@@ -57,9 +72,9 @@ def send_otp(
         "message": f"OTP successfully sent via {payload.channel.value}."
     }
 
-@router.post("/verify-otp", response_model=TokenResponse)
-def verify_otp(
-    payload: VerifyOtpRequest,
+@router.post("/signup/verify", response_model=TokenResponse)
+def signup_verify(
+    payload: SignupVerifyRequest,
     request: Request,
     response: Response,
     db: Session = Depends(deps.get_db)
@@ -70,7 +85,22 @@ def verify_otp(
     # 1. Enforce rate limits
     check_otp_verify_limits(db, ip_address)
     
-    # 2. Verify OTP
+    # 2. Validate uniqueness again to prevent race condition
+    existing_user_name = db.query(User).filter(User.username == payload.username).first()
+    if existing_user_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username is already registered."
+        )
+        
+    existing_user_phone = db.query(User).filter(User.phone_number == payload.phone_number).first()
+    if existing_user_phone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phone number is already registered."
+        )
+        
+    # 3. Verify OTP
     is_valid = twilio_verify_service.verify_otp(payload.phone_number, payload.otp)
     
     if not is_valid:
@@ -80,7 +110,7 @@ def verify_otp(
             event_type="OTP_FAILED",
             ip_address=ip_address,
             user_agent=user_agent,
-            metadata_json={"phone_number": payload.phone_number}
+            metadata_json={"phone_number": payload.phone_number, "flow": "signup"}
         )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -93,62 +123,42 @@ def verify_otp(
         event_type="OTP_VERIFIED",
         ip_address=ip_address,
         user_agent=user_agent,
-        metadata_json={"phone_number": payload.phone_number}
+        metadata_json={"phone_number": payload.phone_number, "flow": "signup"}
     )
     
-    # 3. Find or Create User
-    user = db.query(User).filter(User.phone_number == payload.phone_number).first()
-    is_new_user = False
+    # 4. Create User
+    hashed_pwd = security.get_password_hash(payload.password)
+    user = User(
+        username=payload.username,
+        phone_number=payload.phone_number,
+        password_hash=hashed_pwd,
+        status=AccountStatus.ACTIVE,
+        role=UserRole.FARMER
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
     
-    if not user:
-        is_new_user = True
-        # Create User
-        user = User(
-            phone_number=payload.phone_number,
-            is_phone_verified=True,
-            phone_verified_at=datetime.now(timezone.utc),
-            account_status=AccountStatus.ACTIVE,
-            role=UserRole.FARMER
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        
-        # Create Farmer Profile
-        profile = FarmerProfile(
-            user_id=user.id,
-            profile_completed=False,
-            profile_version=1
-        )
-        db.add(profile)
-        db.commit()
-        db.refresh(profile)
-        
-        log_security_event(
-            db=db,
-            event_type="REGISTRATION_CREATED",
-            user_id=user.id,
-            ip_address=ip_address,
-            user_agent=user_agent
-        )
-    else:
-        # Check status
-        if user.deleted_at is not None or user.account_status != AccountStatus.ACTIVE:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="This account has been deactivated, suspended, or deleted."
-            )
-            
-        user.is_phone_verified = True
-        user.phone_verified_at = datetime.now(timezone.utc)
-        user.last_login_at = datetime.now(timezone.utc)
-        db.commit()
-        
-    # Get profile completed status
-    profile = db.query(FarmerProfile).filter(FarmerProfile.user_id == user.id).first()
-    profile_completed = profile.profile_completed if profile else False
+    # Create Farmer Profile
+    profile = FarmerProfile(
+        user_id=user.id,
+        full_name=payload.username,
+        profile_completed=False,
+        profile_version=1
+    )
+    db.add(profile)
+    db.commit()
+    db.refresh(profile)
     
-    # 4. Create Session
+    log_security_event(
+        db=db,
+        event_type="REGISTRATION_CREATED",
+        user_id=user.id,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
+        
+    # 5. Create Session
     session_id = str(uuid.uuid4())
     token_family_id = str(uuid.uuid4())
     refresh_jti = str(uuid.uuid4())
@@ -198,7 +208,7 @@ def verify_otp(
         user_id=user.id,
         ip_address=ip_address,
         user_agent=user_agent,
-        metadata_json={"session_id": session_id, "is_new_user": is_new_user}
+        metadata_json={"session_id": session_id, "is_new_user": True}
     )
     
     # Set Refresh Token in secure HTTPOnly Cookie
@@ -214,7 +224,7 @@ def verify_otp(
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "profile_completed": profile_completed,
+        "profile_completed": False,
         "role": user.role.value
     }
 
@@ -302,7 +312,7 @@ def refresh_token_route(
 
     # 2. Verify user status
     user = db.query(User).filter(User.id == user_id).first()
-    if not user or user.deleted_at is not None or user.account_status != AccountStatus.ACTIVE:
+    if not user or user.status != AccountStatus.ACTIVE:
         response.delete_cookie(key="refresh_token")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -450,9 +460,8 @@ def get_metrics(
     """
     return get_auth_metrics(db)
 
-# Keeping legacy email/password login endpoint for migration backwards compatibility
 @router.post("/login", response_model=TokenResponse)
-def legacy_login(
+def login(
     payload: LoginRequest,
     request: Request,
     response: Response,
@@ -461,55 +470,75 @@ def legacy_login(
     ip_address = request.client.host if request.client else "127.0.0.1"
     user_agent = request.headers.get("user-agent", "")
     
-    # Check if user exists
-    db_user = db.query(User).filter(User.email == payload.email).first()
-    try:
-        if not db_user or not security.verify_password(payload.password, db_user.hashed_password):
-            log_security_event(
-                db=db,
-                event_type="LOGIN_FAILED",
-                ip_address=ip_address,
-                user_agent=user_agent,
-                metadata_json={"email": payload.email, "reason": "Invalid credentials"}
-            )
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
-        
-    if db_user.deleted_at is not None or db_user.account_status != AccountStatus.ACTIVE:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
-        
-    # Get profile completed status
-    profile = db.query(FarmerProfile).filter(FarmerProfile.user_id == db_user.id).first()
-    profile_completed = profile.profile_completed if profile else False
+    # 1. Enforce rate limits
+    check_login_limits(db, payload.username, ip_address)
     
-    # Create Session
+    # 2. Fetch user by username
+    user = db.query(User).filter(User.username == payload.username).first()
+    if not user:
+        log_security_event(
+            db=db,
+            event_type="LOGIN_FAILED",
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata_json={"username": payload.username, "reason": "User not found"}
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password."
+        )
+        
+    # 3. Check password matches hash
+    if not security.verify_password(payload.password, user.password_hash):
+        log_security_event(
+            db=db,
+            event_type="LOGIN_FAILED",
+            user_id=user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata_json={"username": payload.username, "reason": "Password mismatch"}
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password."
+        )
+        
+    # 4. Check status
+    if user.status != AccountStatus.ACTIVE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account has been deactivated, suspended, or deleted."
+        )
+        
+    # 5. Create Session
     session_id = str(uuid.uuid4())
     token_family_id = str(uuid.uuid4())
     refresh_jti = str(uuid.uuid4())
     access_jti = str(uuid.uuid4())
     
+    # Issue Refresh Token (contains token_family_id)
     refresh_token = security.create_refresh_token(
-        user_id=db_user.id,
+        user_id=user.id,
         session_id=session_id,
         token_family_id=token_family_id,
         jti=refresh_jti
     )
+    
+    # Hash refresh token
     refresh_hash = security.hash_refresh_token(refresh_token)
+    
+    # Expiration datetime
     expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     
+    # Create DB session
     new_session = UserSession(
         id=session_id,
-        user_id=db_user.id,
+        user_id=user.id,
         refresh_token_hash=refresh_hash,
         token_family_id=token_family_id,
         device_info=user_agent[:256] if user_agent else None,
-        device_name="Legacy Client",
-        is_trusted_device=False,
+        device_name=payload.device_name[:128] if payload.device_name else None,
+        is_trusted_device=payload.is_trusted_device,
         user_agent=user_agent,
         ip_address=ip_address,
         expires_at=expires_at
@@ -517,22 +546,44 @@ def legacy_login(
     db.add(new_session)
     db.commit()
     
+    # Issue Access Token (contains sid and role, excludes token_family_id)
     access_token = security.create_access_token(
-        user_id=db_user.id,
+        user_id=user.id,
         session_id=session_id,
-        role=db_user.role.value,
+        role=user.role.value,
         jti=access_jti
+    )
+    
+    # Log audit events
+    log_security_event(
+        db=db,
+        event_type="LOGIN_SUCCESS",
+        user_id=user.id,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        metadata_json={"session_id": session_id, "is_new_user": False}
     )
     
     log_security_event(
         db=db,
-        event_type="LOGIN_SUCCESS",
-        user_id=db_user.id,
+        event_type="SESSION_CREATED",
+        user_id=user.id,
         ip_address=ip_address,
         user_agent=user_agent,
-        metadata_json={"session_id": session_id, "type": "legacy_password"}
+        metadata_json={"session_id": session_id}
     )
     
+    if payload.is_trusted_device:
+        log_security_event(
+            db=db,
+            event_type="TRUSTED_DEVICE",
+            user_id=user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata_json={"session_id": session_id, "device_name": payload.device_name}
+        )
+    
+    # Set Refresh Token in secure HTTPOnly Cookie
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
@@ -542,9 +593,14 @@ def legacy_login(
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
     )
     
+    # Get profile completed status
+    profile = db.query(FarmerProfile).filter(FarmerProfile.user_id == user.id).first()
+    profile_completed = profile.profile_completed if profile else False
+    
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "profile_completed": profile_completed,
-        "role": db_user.role.value
+        "role": user.role.value
     }
+

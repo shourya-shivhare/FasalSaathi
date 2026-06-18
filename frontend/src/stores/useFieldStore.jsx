@@ -4,42 +4,19 @@ import { persist } from 'zustand/middleware';
 export const useFieldStore = create(
   persist(
     (set, get) => ({
-      fields: [],
       activeFieldId: null,
       weather: null,
       soil: null,
       irrigation: null,
-      scanHistory: [], // track pest scans
+      fields: [], // kept as empty array for backwards compatibility stubs
+      scanHistory: [], // kept as empty array for backwards compatibility stubs
 
       setActiveField: (id) => {
         set({ activeFieldId: id });
-        // Update soil data from the selected field
-        const field = get().fields.find((f) => f.id === id);
-        if (field?.soilHealth) {
-          set({
-            soil: {
-              N: field.soilHealth.N,
-              P: field.soilHealth.P,
-              K: field.soilHealth.K,
-              pH: field.soilHealth.pH,
-              moisture: field.sensors?.moisture || 60,
-            },
-          });
-        }
       },
 
       updateSensorData: (data) => {
-        set((state) => {
-          if (!state.activeFieldId) return state;
-
-          return {
-            fields: state.fields.map((field) =>
-              field.id === state.activeFieldId
-                ? { ...field, sensors: { ...field.sensors, ...data } }
-                : field
-            ),
-          };
-        });
+        // No-op stub
       },
 
       fetchWeather: async (location) => {
@@ -81,7 +58,6 @@ export const useFieldStore = create(
           }
         } catch (error) {
           console.error('Failed to fetch weather:', error);
-          // Set a sensible fallback so the UI doesn't break
           set({
             weather: { temp: '--', humidity: '--', windSpeed: '--', condition: 'Unavailable', riskLevel: 'LOW', lastUpdated: new Date() },
             isWeatherLoading: false,
@@ -90,76 +66,34 @@ export const useFieldStore = create(
       },
 
       addField: (fieldData) => {
-        const newField = {
-          id: `field-${Date.now()}`,
-          ...fieldData,
-          sensors: { moisture: 60, temperature: 25, ph: 6.5 },
-          growthStage: fieldData.growthStage || 'Sowing',
-          soilHealth: fieldData.soilHealth || { score: 75, N: 280, P: 25, K: 200, pH: 6.5 },
-          createdAt: new Date().toISOString(),
-        };
-
-        set((state) => ({
-          fields: [...state.fields, newField],
-          // Auto-select as active if it's the first field
-          activeFieldId: state.activeFieldId || newField.id,
-          // Also set soil from this field if it's the first
-          soil: state.soil || {
-            N: newField.soilHealth.N,
-            P: newField.soilHealth.P,
-            K: newField.soilHealth.K,
-            pH: newField.soilHealth.pH,
-            moisture: 60,
-          },
-        }));
-
-        return newField;
+        // No-op stub for backwards compatibility
+        return { id: `stub-${Date.now()}` };
       },
 
       addScanRecord: (record) => {
-        set((state) => ({
-          scanHistory: [
-            { id: `scan-${Date.now()}`, timestamp: new Date().toISOString(), ...record },
-            ...state.scanHistory,
-          ].slice(0, 50), // Keep last 50
-        }));
+        // No-op stub
       },
 
       updateField: (id, updates) => {
-        set((state) => ({
-          fields: state.fields.map((field) =>
-            field.id === id ? { ...field, ...updates } : field
-          ),
-        }));
+        // No-op stub
       },
 
       deleteField: (id) => {
-        set((state) => ({
-          fields: state.fields.filter((field) => field.id !== id),
-          activeFieldId: state.activeFieldId === id ? (state.fields[0]?.id || null) : state.activeFieldId,
-        }));
+        // No-op stub
       },
 
       getActiveField: () => {
-        const { fields, activeFieldId } = get();
-        return fields.find((field) => field.id === activeFieldId) || null;
+        // No-op stub
+        return null;
       },
 
-      getTotalLand: () => {
-        return get().fields.reduce((sum, f) => sum + (parseFloat(f.area) || 0), 0);
-      },
-
-      getUniqueCrops: () => {
-        const crops = get().fields.map((f) => f.crop).filter(Boolean);
-        return [...new Set(crops)];
-      },
+      getTotalLand: () => 0,
+      getUniqueCrops: () => [],
     }),
     {
-      name: 'fasalsaathi-fields',
+      name: 'fasalsaathi-fields-v2', // Changed storage key to avoid cache pollution from older schema versions
       partialize: (s) => ({
-        fields: s.fields,
         activeFieldId: s.activeFieldId,
-        scanHistory: s.scanHistory,
       }),
     }
   )

@@ -13,26 +13,37 @@ from backend.app.services.context_builder import build_farmer_context
 from backend.app.services.profile_completion import evaluate_profile_completion
 from backend.app.core import security
 
-def test_otp_send_validation(client):
+def test_signup_otp_send_validation(client):
     # Test invalid E.164 phone numbers
-    response = client.post("/api/v1/auth/send-otp", json={"phone_number": "12345", "channel": "SMS"})
+    response = client.post(
+        "/api/v1/auth/signup/send-otp",
+        json={"username": "testuser", "phone_number": "12345", "password": "mypassword", "channel": "SMS"}
+    )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     
-    response = client.post("/api/v1/auth/send-otp", json={"phone_number": "9876543210", "channel": "SMS"})
+    response = client.post(
+        "/api/v1/auth/signup/send-otp",
+        json={"username": "testuser", "phone_number": "9876543210", "password": "mypassword", "channel": "SMS"}
+    )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     # Test valid E.164 phone number
-    response = client.post("/api/v1/auth/send-otp", json={"phone_number": "+919876543210", "channel": "SMS"})
+    response = client.post(
+        "/api/v1/auth/signup/send-otp",
+        json={"username": "testuser", "phone_number": "+919876543210", "password": "mypassword", "channel": "SMS"}
+    )
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["status"] == "pending"
 
-def test_otp_verify_flow_new_user(client, db: Session):
+def test_signup_verify_flow_new_user(client, db: Session):
+    username = "newfarmer"
     phone = "+919876543210"
+    pwd = "securepassword"
     
     # 1. Verify OTP with correct code
     response = client.post(
-        "/api/v1/auth/verify-otp",
-        json={"phone_number": phone, "otp": "123456", "device_name": "Test Client"}
+        "/api/v1/auth/signup/verify",
+        json={"username": username, "phone_number": phone, "password": pwd, "otp": "123456", "device_name": "Test Client"}
     )
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -42,20 +53,23 @@ def test_otp_verify_flow_new_user(client, db: Session):
     
     # Check that cookie was set
     assert "refresh_token" in response.cookies
-    refresh_cookie = response.cookies["refresh_token"]
     
     # Check user was created in DB
     user = db.query(User).filter(User.phone_number == phone).first()
     assert user is not None
-    assert user.is_phone_verified is True
+    assert user.username == username
+    assert security.verify_password(pwd, user.password_hash)
     assert user.farmer_profile is not None
     assert user.farmer_profile.profile_completed is False
 
 def test_access_token_claims(client, db: Session):
+    username = "claimsuser"
     phone = "+919876543211"
+    pwd = "password123"
+    
     response = client.post(
-        "/api/v1/auth/verify-otp",
-        json={"phone_number": phone, "otp": "123456"}
+        "/api/v1/auth/signup/verify",
+        json={"username": username, "phone_number": phone, "password": pwd, "otp": "123456"}
     )
     data = response.json()
     access_token = data["access_token"]
@@ -66,14 +80,18 @@ def test_access_token_claims(client, db: Session):
     assert "sid" in claims
     assert "role" in claims
     assert "jti" in claims
-    # Crucial adjustment check: token_family_id MUST NOT be in standard access-token claims
     assert "token_family_id" not in claims
 
 def test_refresh_token_rotation_and_replay_detection(client, db: Session):
+    username = "rotateuser"
     phone = "+919876543212"
+    pwd = "password123"
     
-    # 1. Login
-    resp1 = client.post("/api/v1/auth/verify-otp", json={"phone_number": phone, "otp": "123456"})
+    # 1. Signup
+    resp1 = client.post(
+        "/api/v1/auth/signup/verify",
+        json={"username": username, "phone_number": phone, "password": pwd, "otp": "123456"}
+    )
     token1 = resp1.json()["access_token"]
     cookie1 = resp1.cookies["refresh_token"]
     
@@ -115,36 +133,168 @@ def test_refresh_token_rotation_and_replay_detection(client, db: Session):
     ).first()
     assert sec_event is not None
 
-def test_blocked_and_soft_deleted_users(client, db: Session):
+def test_blocked_users(client, db: Session):
+    username = "blockeduser"
     phone = "+919876543213"
+    pwd = "password123"
     
     # Create blocked user
     user = User(
+        username=username,
         phone_number=phone,
-        name="Blocked Farmer",
-        account_status=AccountStatus.BLOCKED,
-        is_phone_verified=True
+        password_hash=security.get_password_hash(pwd),
+        status=AccountStatus.BLOCKED,
+        role=UserRole.FARMER
     )
     db.add(user)
     db.commit()
     
-    # Trying to verify OTP for a blocked user should raise 403
-    response = client.post("/api/v1/auth/verify-otp", json={"phone_number": phone, "otp": "123456"})
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    
-    # Soft deleted user check
-    phone2 = "+919876543214"
-    user2 = User(
-        phone_number=phone2,
-        name="Soft Deleted Farmer",
-        deleted_at=datetime.now(timezone.utc),
-        is_phone_verified=True
+    # Trying to login a blocked user should raise 403
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": username, "password": pwd}
     )
-    db.add(user2)
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+def test_login_flow(client, db: Session):
+    username = "loginfarmer"
+    phone = "+919876543214"
+    pwd = "securepassword"
+    
+    # Create active user
+    user = User(
+        username=username,
+        phone_number=phone,
+        password_hash=security.get_password_hash(pwd),
+        status=AccountStatus.ACTIVE,
+        role=UserRole.FARMER
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    # Create Farmer Profile
+    profile = FarmerProfile(
+        user_id=user.id,
+        full_name=username,
+        profile_completed=False,
+        profile_version=1
+    )
+    db.add(profile)
     db.commit()
     
-    response2 = client.post("/api/v1/auth/verify-otp", json={"phone_number": phone2, "otp": "123456"})
-    assert response2.status_code == status.HTTP_403_FORBIDDEN
+    # Attempt login with invalid password
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": username, "password": "wrongpassword"}
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    
+    # Verify LOGIN_FAILED event was logged
+    fail_event = db.query(SecurityEvent).filter(
+        SecurityEvent.user_id == user.id,
+        SecurityEvent.event_type == "LOGIN_FAILED"
+    ).first()
+    assert fail_event is not None
+    assert fail_event.metadata_json["reason"] == "Password mismatch"
+    
+    # Attempt login with non-existent user
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "doesnotexist", "password": "somepassword"}
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    
+    # Verify LOGIN_FAILED event was logged with user_id as None
+    none_user_fail_events = db.query(SecurityEvent).filter(
+        SecurityEvent.user_id.is_(None),
+        SecurityEvent.event_type == "LOGIN_FAILED"
+    ).all()
+    none_user_fail_event = next(
+        (e for e in none_user_fail_events if e.metadata_json and e.metadata_json.get("username") == "doesnotexist"),
+        None
+    )
+    assert none_user_fail_event is not None
+
+    
+    # Attempt login with correct credentials, requesting device trust
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "username": username,
+            "password": pwd,
+            "device_name": "Test Device",
+            "is_trusted_device": True
+        }
+    )
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert "access_token" in data
+    assert data["profile_completed"] is False
+    assert data["role"] == "FARMER"
+    assert "refresh_token" in response.cookies
+    
+    # Verify security events: LOGIN_SUCCESS, SESSION_CREATED, TRUSTED_DEVICE
+    success_event = db.query(SecurityEvent).filter(
+        SecurityEvent.user_id == user.id,
+        SecurityEvent.event_type == "LOGIN_SUCCESS"
+    ).first()
+    assert success_event is not None
+    
+    session_event = db.query(SecurityEvent).filter(
+        SecurityEvent.user_id == user.id,
+        SecurityEvent.event_type == "SESSION_CREATED"
+    ).first()
+    assert session_event is not None
+    
+    trusted_event = db.query(SecurityEvent).filter(
+        SecurityEvent.user_id == user.id,
+        SecurityEvent.event_type == "TRUSTED_DEVICE"
+    ).first()
+    assert trusted_event is not None
+    assert trusted_event.metadata_json["device_name"] == "Test Device"
+
+def test_login_rate_limiting(client, db: Session):
+    from backend.app.core.config import settings
+    
+    username = "ratelimitedfarmer"
+    phone = "+919876543219"
+    pwd = "password123"
+    
+    user = User(
+        username=username,
+        phone_number=phone,
+        password_hash=security.get_password_hash(pwd),
+        status=AccountStatus.ACTIVE,
+        role=UserRole.FARMER
+    )
+    db.add(user)
+    db.commit()
+    
+    # Toggle rate limiter ON for test
+    original_setting = settings.ENABLE_RATE_LIMIT
+    settings.ENABLE_RATE_LIMIT = True
+    
+    try:
+        # Perform 5 failed login attempts
+        for _ in range(5):
+            response = client.post(
+                "/api/v1/auth/login",
+                json={"username": username, "password": "wrongpassword"}
+            )
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+            
+        # 6th attempt should trigger 429
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"username": username, "password": pwd}
+        )
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert "Too many login attempts" in response.json()["detail"]
+    finally:
+        # Revert rate limiter setting
+        settings.ENABLE_RATE_LIMIT = original_setting
+
 
 def test_profile_completion_evaluator():
     profile = FarmerProfile(
@@ -162,11 +312,17 @@ def test_profile_completion_evaluator():
     assert evaluate_profile_completion(profile) is False
 
 def test_farmer_context_builder_prioritization(db: Session):
-    # 1. Create User & Profile with crops_grown migration cache
+    username = "contextfarmer"
+    phone = "+919876543215"
+    pwd = "password123"
+    
+    # 1. Create User & Profile
     user = User(
-        phone_number="+919876543215",
-        name="Context Farmer",
-        is_phone_verified=True
+        username=username,
+        phone_number=phone,
+        password_hash=security.get_password_hash(pwd),
+        status=AccountStatus.ACTIVE,
+        role=UserRole.FARMER
     )
     db.add(user)
     db.commit()
@@ -182,7 +338,7 @@ def test_farmer_context_builder_prioritization(db: Session):
         preferred_language=PreferredLanguage.ENGLISH,
         soil_type=SoilType.SANDY,
         irrigation_source=IrrigationSource.RAINFED,
-        crops_grown=["Cotton", "Rice"], # migration-compatibility cache
+        crops_grown=["Cotton", "Rice"],
         profile_completed=True
     )
     db.add(profile)

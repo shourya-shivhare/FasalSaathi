@@ -2,9 +2,11 @@
 FasalSaathi Unified LangGraph Orchestrator — full graph assembly.
 
 Graph topology:
-    START → memory_retrieve → intent_router → {greeting | conversational | context_retrieval | planner}
+    START → memory_retrieve → intent_router → {greeting | data_retrieval | data_analysis | conversational | context_retrieval | planner}
     planner → validator → {dispatch agents via conditional_edges + Send()}
     agents → {human_intervention | manual_review | summary} → memory_persist → observability → END
+    data_retrieval → memory_persist → observability → END
+    data_analysis → memory_persist → observability → END
 
 No executor node — LangGraph orchestrates via conditional edges.
 """
@@ -35,6 +37,8 @@ from ai_service.app.nodes.human_intervention import human_intervention_node
 from ai_service.app.nodes.manual_review import manual_review_node
 from ai_service.app.nodes.summary_node import summary_node
 from ai_service.app.nodes.observability import observability_node
+from ai_service.app.nodes.data_retrieval_node import data_retrieval_node
+from ai_service.app.nodes.data_analysis_node import data_analysis_node
 
 # ── Import routing functions ─────────────────────────────────────────────────
 from ai_service.app.graph.routing import (
@@ -73,6 +77,8 @@ def build_graph(checkpointer=None) -> StateGraph:
     graph.add_node("summary", summary_node)
     graph.add_node("memory_persist", memory_persist_node)
     graph.add_node("observability", observability_node)
+    graph.add_node("data_retrieval", data_retrieval_node)
+    graph.add_node("data_analysis", data_analysis_node)
 
     # ── Edges ─────────────────────────────────────────────────────────────
 
@@ -80,12 +86,14 @@ def build_graph(checkpointer=None) -> StateGraph:
     graph.add_edge(START, "memory_retrieve")
     graph.add_edge("memory_retrieve", "intent_router")
 
-    # intent_router → {greeting, conversational, context_retrieval, planner}
+    # intent_router → {greeting, data_retrieval, data_analysis, conversational, context_retrieval, planner}
     graph.add_conditional_edges(
         "intent_router",
         route_after_intent,
         {
             "greeting": "greeting",
+            "data_retrieval": "data_retrieval",
+            "data_analysis": "data_analysis",
             "conversational": "conversational",
             "context_retrieval": "context_retrieval",
             "planner": "planner",
@@ -97,6 +105,12 @@ def build_graph(checkpointer=None) -> StateGraph:
 
     # conversational → memory_persist
     graph.add_edge("conversational", "memory_persist")
+
+    # data_retrieval → memory_persist
+    graph.add_edge("data_retrieval", "memory_persist")
+
+    # data_analysis → memory_persist
+    graph.add_edge("data_analysis", "memory_persist")
 
     # context_retrieval → conversational
     graph.add_edge("context_retrieval", "conversational")

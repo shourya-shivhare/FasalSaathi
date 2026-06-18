@@ -6,8 +6,10 @@ from backend.app.models.enums import VerificationChannel
 # Regex for validating E.164 phone format
 E164_REGEX = re.compile(r"^\+[1-9]\d{1,14}$")
 
-class SendOtpRequest(BaseModel):
+class SignupSendOtpRequest(BaseModel):
+    username: str
     phone_number: str
+    password: str
     channel: VerificationChannel = VerificationChannel.SMS
 
     @field_validator("phone_number")
@@ -20,9 +22,11 @@ class SendOtpRequest(BaseModel):
             )
         return value_stripped
 
-class VerifyOtpRequest(BaseModel):
+class SignupVerifyRequest(BaseModel):
+    username: str
     phone_number: str
-    otp: constr(min_length=4, max_length=10) # twilio codes are usually 4 to 10 chars
+    password: str
+    otp: constr(min_length=4, max_length=10)
     device_name: Optional[str] = "Web Browser"
     is_trusted_device: Optional[bool] = False
 
@@ -36,6 +40,13 @@ class VerifyOtpRequest(BaseModel):
             )
         return value_stripped
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+    device_name: Optional[str] = "Web Browser"
+    is_trusted_device: Optional[bool] = False
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -45,14 +56,3 @@ class TokenResponse(BaseModel):
 class SendOtpResponse(BaseModel):
     status: str
     message: str
-
-# Keep legacy schemas for backward compatibility if needed in dependencies/other routers
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-class RegisterRequest(BaseModel):
-    name: str
-    email: str
-    password: str
-    phone: Optional[str] = None

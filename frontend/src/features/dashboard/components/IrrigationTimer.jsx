@@ -7,6 +7,21 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useThemeStore } from '../../../stores/useThemeStore';
 
 const IrrigationTimer = ({ irrigation }) => {
+  if (!irrigation || !irrigation.weeklyUsage) {
+    return (
+      <Card className="p-6 text-center theme-text-secondary transition-all duration-200">
+        <div className="flex items-center gap-2 mb-4">
+          <Droplets className="w-5 h-5 theme-text-accent-primary" />
+          <h3 className="text-lg font-semibold theme-text-primary">Irrigation</h3>
+        </div>
+        <div className="py-6">
+          <p className="font-semibold text-base mb-1">Data Not Available</p>
+          <p className="text-sm">No irrigation schedules recorded for this farm.</p>
+        </div>
+      </Card>
+    );
+  }
+
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
 
