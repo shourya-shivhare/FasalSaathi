@@ -108,7 +108,7 @@ async def safe_llm_invoke_async(
             await _rate_limiter.acquire()
 
             # Run the synchronous LLM call in a thread to avoid blocking
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             response = await loop.run_in_executor(None, llm.invoke, prompt)
 
             content = response.content

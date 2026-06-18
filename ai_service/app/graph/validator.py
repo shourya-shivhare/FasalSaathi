@@ -167,6 +167,7 @@ async def validator_node(state: FasalSaathiState, config: RunnableConfig) -> dic
                 "pending_action": None,
                 "reasoning": "Missing planner output.",
             },
+            "pending_action": None,
             "graph_path": ["validator"],
             "execution_trace": [{
                 "node": "validator", "status": "failed",
@@ -214,6 +215,7 @@ async def validator_node(state: FasalSaathiState, config: RunnableConfig) -> dic
 
     return {
         "validation_result": validation,
+        "pending_action": pending_action,
         "graph_path": ["validator"],
         "timestamps": {"validation_completed": _now_iso()},
         "execution_trace": [{

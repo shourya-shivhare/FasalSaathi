@@ -194,7 +194,7 @@ async def run_market_intelligence_agent(
 
     # ── Step 1 & 2: Fetch market data ────────────────────────────────────
     records = await fetch_mandi_prices(commodity, state, district, market)
-    nearby = await fetch_nearby_markets(commodity, state)
+    nearby = await fetch_nearby_markets(commodity, state) 
 
     # ── Step 3: Fetch weather data ───────────────────────────────────────
     weather_city = district if district else state

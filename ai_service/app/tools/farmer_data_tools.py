@@ -67,7 +67,13 @@ class FarmerDataTools:
             ),
         }
 
-        has_data = any(v for v in merged.values() if v is not None)
+        # Preferred language has a default even when no profile exists.
+        identity_fields = (
+            "name", "state", "district", "village", "category",
+            "annual_income", "gender", "age", "land_size_acres",
+            "soil_type", "irrigation_source",
+        )
+        has_data = any(merged.get(field) is not None for field in identity_fields)
         return {
             "found": has_data,
             "data": merged,

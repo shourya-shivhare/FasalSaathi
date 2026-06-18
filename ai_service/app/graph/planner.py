@@ -134,30 +134,20 @@ async def planner_node(state: FasalSaathiState, config: RunnableConfig) -> dict:
             plan["agents"] = ["crop"]
             plan["confidence"] = 0.4
 
-        # Low confidence → interrupt for clarification
+        # Bug Fix: Command(goto=..., resume=...) was the wrong LangGraph API here.
+        # Command.resume is what the *caller* passes to resume a paused graph,
+        # not something a node returns to trigger a pause.  That code never
+        # actually interrupted execution — it silently fell through and then
+        # re-entered 'planner' creating a routing loop.
+        #
+        # The correct safety net for a low-confidence plan is the validator:
+        # its graph_score threshold (0.4) will route to 'conversational', which
+        # naturally asks the farmer for more detail if needed.
         if plan.get("confidence", 0.5) < 0.6:
-            from langgraph.types import Command
-            return Command(
-                update={
-                    "planner_output": plan,
-                    "graph_path": ["planner"],
-                    "timestamps": {"planner_completed": _now_iso()},
-                    "execution_trace": [{
-                        "node": "planner", "status": "interrupted",
-                        "duration_ms": round((time.time() - start) * 1000, 2),
-                        "reasoning": f"Low confidence ({plan['confidence']}), requesting clarification",
-                        "confidence": plan["confidence"],
-                        "timestamp": _now_iso(),
-                    }],
-                },
-                goto="planner",  # Return to planner after user responds
-                resume={
-                    "type": "clarification",
-                    "message": (
-                        "I want to make sure I understand correctly. "
-                        "Could you provide more details about what you need help with?"
-                    ),
-                },
+            logger.info(
+                "⚠️  Planner: low confidence (%.2f) — proceeding; "
+                "validator will apply score threshold.",
+                plan["confidence"],
             )
 
         return {
@@ -199,7 +189,9 @@ def _fallback_plan(sub_intents: list[str]) -> dict:
         "execution_hints": {"parallel": [], "priority": {a: i + 1 for i, a in enumerate(agents)}},
         "requires_image": "pest" in agents,
         "reasoning": "Fallback plan from sub_intents.",
-        "confidence": 0.5,
+        # Explicit sub-intents were already classified upstream, so an LLM
+        # outage must not turn a known workflow into a clarification loop.
+        "confidence": 0.8 if sub_intents else 0.4,
     }
 
 

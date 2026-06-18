@@ -107,8 +107,15 @@ async def data_analysis_node(state: FasalSaathiState, config: RunnableConfig) ->
     farmer_data_str = "\n".join(farmer_data_parts)
 
     # Check if we have any data at all to analyze
+    # Season metadata exists for a new account, but it cannot support an
+    # analysis of the farmer's own records.
+    substantive_sections = (
+        "farms", "active_crops", "crop_history", "pest_history",
+        "farm_summary",
+    )
     any_data = any(
-        s.get("found", False) for s in sections_data.values()
+        sections_data.get(name, {}).get("found", False)
+        for name in substantive_sections
     )
 
     if not any_data:

@@ -126,6 +126,7 @@ class FarmerDataService:
                 "preferred_language": "ENGLISH",
                 "soil_type": None,
                 "irrigation_source": None,
+                "crops_grown": [],
                 "profile_completed": False,
             }
 
@@ -150,6 +151,7 @@ class FarmerDataService:
             "preferred_language": lang,
             "soil_type": _enum_val(profile.soil_type),
             "irrigation_source": _enum_val(profile.irrigation_source),
+            "crops_grown": profile.crops_grown or [],
             "profile_completed": profile.profile_completed,
         }
 

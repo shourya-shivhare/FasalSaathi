@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import asyncio
+import sqlite3
 import aiosqlite
 
 from langgraph.checkpoint.sqlite import SqliteSaver
@@ -62,5 +63,4 @@ async def close_async_checkpointer() -> None:
         _async_conn = None
         _async_saver = None
         _loop = None
-
 

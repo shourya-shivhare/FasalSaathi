@@ -114,7 +114,7 @@ async def pest_detection_node(state: FasalSaathiState, config: RunnableConfig) -
 
 async def _run_yolo_inference(image_bytes: bytes) -> dict:
     """Run YOLO in a thread pool (CPU-bound operation)."""
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
 
     def _infer():
         # Write bytes to temp file for YOLO

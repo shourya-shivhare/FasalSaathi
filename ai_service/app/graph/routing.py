@@ -120,8 +120,10 @@ def route_after_agent(state: FasalSaathiState) -> Union[str, list[Send]]:
                             last, agent_conf, threshold, current_attempts + 1)
                 return "human_intervention"
 
-    # ── Next group dispatch ──────────────────────────────────────────────
-    vr = state.get("validation_result", {})
+    # ── Next group dispatch ──────────────────────────────────────────
+    # Bug Fix: validation_result can be explicitly None (failed validator);
+    # use `or {}` not the default= kwarg to handle that case.
+    vr = state.get("validation_result") or {}
     groups = vr.get("execution_graph", {}).get("groups", [])
     completed = _completed_agents(state)
 
@@ -184,14 +186,30 @@ def _last_completed_agent(state: FasalSaathiState) -> str | None:
     return None
 
 
+# Nodes that are valid targets for re-entry after human intervention.
+# Must match the keys in the route_after_intervention path_map in orchestrator.py.
+_REENTRY_NODES = {
+    "crop_recommendation",
+    "market_intelligence",
+    "scheme_recommendation",
+    "pest_detection",
+}
+
+
 def _determine_reentry(state: FasalSaathiState) -> str:
-    """Determine which node to re-enter after intervention."""
-    # Look at what was last attempted
+    """Determine which node to re-enter after intervention.
+
+    Bug Fix: the previous version returned the raw node name from the trace
+    without checking it against the set of nodes registered in the
+    route_after_intervention conditional-edge map.  An unrecognised node name
+    (e.g. "summary" appearing in the trace) would cause a LangGraph routing
+    error.  Now we validate and fall back to "summary" if no match is found.
+    """
     trace = state.get("execution_trace", [])
     for entry in reversed(trace):
         node = entry.get("node", "")
-        if node in REVERSE_NODE_MAP:
-            return node  # Re-enter the same agent node
+        if node in _REENTRY_NODES:
+            return node  # Re-enter the validated agent node
 
-    # Fallback: continue to next group or summary
+    # Fallback: continue to summary
     return "summary"

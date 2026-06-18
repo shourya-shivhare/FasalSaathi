@@ -123,16 +123,25 @@ async def crop_recommendation(payload: dict):
             "district": ctx_profile.get("district", payload.get("district", "")),
             "village": ctx_profile.get("village", ""),
             "farmer_category": ctx_profile.get("category", payload.get("farmer_category", "marginal")),
-            "soil_type": payload.get("soil_type", "Loamy"),
-            "season": payload.get("season", "Kharif"),
+            "soil_type": payload.get("soil_type") or ctx_profile.get("soil_type") or "Loamy",
+            "season": (
+                payload.get("season")
+                or context.get("season_context", {}).get("current_season")
+                or "Kharif"
+            ).title(),
             "water_availability": payload.get("water_availability", "moderate"),
             "land_size_acres": ctx_profile.get("land_size_acres", payload.get("land_size_acres")),
-            "past_crops": payload.get("past_crops", []),
+            "past_crops": payload.get("past_crops") or [
+                crop.get("crop_name", "")
+                for crop in context.get("crop_history", [])
+                if crop.get("crop_name")
+            ],
             "crop_types": payload.get("crop_types", []),
             "preferred_language": ctx_profile.get("preferred_language", "ENGLISH"),
         }
-        for key in ("farms", "active_crops", "recent_pests",
-                    "recent_journal_entries", "farm_summary", "season_context"):
+        for key in ("farms", "active_crops", "crop_history", "pest_history",
+                    "recent_pests", "recent_journal_entries", "farm_summary",
+                    "season_context"):
             if key in context:
                 profile[key] = context[key]
         if "active_crops" in context:

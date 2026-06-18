@@ -45,7 +45,8 @@ from ai_service.app.graph.routing import (
     route_after_intent,
     route_after_validation,
     route_after_agent,
-    route_after_intervention,
+    # route_after_intervention removed: human_intervention now ends the turn
+    # (sets final_response + pending_action) and flows to memory_persist.
 )
 
 logger = logging.getLogger(__name__)
@@ -153,22 +154,19 @@ def build_graph(checkpointer=None) -> StateGraph:
             },
         )
 
-    # image_upload → pest_detection (after interrupt resumes)
-    graph.add_edge("image_upload", "pest_detection")
+    # Bug Fix: image_upload now ends the current turn (returns a final_response
+    # asking the farmer for an image) and flows to memory_persist so the state
+    # is persisted.  On the NEXT API call for the same session the intent_router
+    # detects (uploaded_image_id + pending_action=="waiting_for_image") and
+    # re-enters the pest workflow.  The old direct edge to pest_detection would
+    # have caused pest_detection to run without any uploaded image.
+    graph.add_edge("image_upload", "memory_persist")
 
-    # human_intervention → route_after_intervention
-    graph.add_conditional_edges(
-        "human_intervention",
-        route_after_intervention,
-        {
-            "image_upload": "image_upload",
-            "crop_recommendation": "crop_recommendation",
-            "market_intelligence": "market_intelligence",
-            "scheme_recommendation": "scheme_recommendation",
-            "pest_detection": "pest_detection",
-            "summary": "summary",
-        },
-    )
+    # Bug Fix: human_intervention now ends the turn (sets final_response to the
+    # clarification message) instead of looping back to agents via
+    # route_after_intervention.  It needs a direct edge to memory_persist so
+    # intervention_attempts and final_response are checkpointed before END.
+    graph.add_edge("human_intervention", "memory_persist")
 
     # manual_review → summary
     graph.add_edge("manual_review", "summary")
