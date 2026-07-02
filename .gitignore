@@ -22,6 +22,7 @@ venv/
 
 # YOLO training/eval run artifacts
 runs/
+data/
 
 # Annotated output images from inference
 outputs/
@@ -31,6 +32,9 @@ ai-service/eval_results.txt
 
 # Compressed dataset archive
 data.zip
+archive.zip
+*.csv
+*.docx
 
 # Previous / archived implementation code
 archive/
@@ -40,6 +44,9 @@ legacy/
 
 # ── SQLite databases (runtime) ────────────────────────────────────────────────
 *.db
+*.db-shm
+*.db-wal
+*.pkl
 !*.db.example
 
 # ── Uploads (user images, cleaned by TTL) ─────────────────────────────────────
