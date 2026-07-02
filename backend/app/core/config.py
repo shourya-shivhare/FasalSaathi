@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str 
 
+    # Data.gov.in API
+    DATA_GOV_API_KEY: str = ""
+    DATA_GOV_RESOURCE_ID: str = ""
+
     # Security
     SECRET_KEY: str = "changeme-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # 15 minutes for production-grade security
@@ -32,6 +36,11 @@ class Settings(BaseSettings):
     # Rate Limiting
     ENABLE_RATE_LIMIT: bool = True
 
+    # Redis Connection Settings
+    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_MAX_CONNECTIONS: int = 20
+    REDIS_TIMEOUT: float = 5.0
+
     class Config:
         import os
         from pathlib import Path
@@ -40,3 +49,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+

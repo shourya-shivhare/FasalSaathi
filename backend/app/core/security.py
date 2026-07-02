@@ -1,4 +1,15 @@
 import hashlib
+import bcrypt
+
+# Monkeypatch bcrypt to truncate passwords exceeding 72 bytes.
+# This fixes the compatibility crash in passlib 1.7.4's internal bug check with newer bcrypt.
+_orig_hashpw = bcrypt.hashpw
+def _safe_hashpw(password, salt):
+    if len(password) > 72:
+        password = password[:72]
+    return _orig_hashpw(password, salt)
+bcrypt.hashpw = _safe_hashpw
+
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Union, Dict, Any

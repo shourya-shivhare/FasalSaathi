@@ -61,11 +61,12 @@ const getWeatherChipIcon = (condition) => {
 
 const DashboardPage = () => {
   const navigate = useNavigate();
-  const { farmer, logout } = useUserStore();
+  const { farmer, logout, fetchCurrentUser } = useUserStore();
   const { activeField, weather, soil, irrigation, hasFields, isLoading, fields, scanHistory } = useFieldData();
   const { farms, fetchFarms } = useFarmStore();
   const { cycles, fetchCycles } = useCropCycleStore();
   useEffect(() => { 
+    fetchCurrentUser();
     fetchFarms(); 
     fetchCycles(); 
   }, []);

@@ -26,6 +26,15 @@ class JournalService:
         self.db.add(entry)
         self.db.commit()
         self.db.refresh(entry)
+        
+        # Invalidate caches
+        from backend.app.services.cache_service import CacheService
+        from backend.app.utils.cache_keys import make_context_key, make_dashboard_key
+        CacheService.delete_sync(make_context_key(user_id))
+        CacheService.delete_sync(make_dashboard_key(user_id))
+        CacheService.invalidate_pattern_sync(f"crop_rec:{user_id}:*")
+        CacheService.invalidate_pattern_sync(f"scheme_rec:{user_id}:*")
+
         return entry
 
     def list_by_crop_cycle(self, crop_cycle_id: int) -> List[CropJournalEntry]:
@@ -62,4 +71,13 @@ class JournalService:
 
         self.db.delete(entry)
         self.db.commit()
+        
+        # Invalidate caches
+        from backend.app.services.cache_service import CacheService
+        from backend.app.utils.cache_keys import make_context_key, make_dashboard_key
+        CacheService.delete_sync(make_context_key(user_id))
+        CacheService.delete_sync(make_dashboard_key(user_id))
+        CacheService.invalidate_pattern_sync(f"crop_rec:{user_id}:*")
+        CacheService.invalidate_pattern_sync(f"scheme_rec:{user_id}:*")
+
         return True

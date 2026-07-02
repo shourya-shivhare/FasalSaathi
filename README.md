@@ -472,6 +472,43 @@ python ai_service/evaluate.py
 python ai_service/infer.py --image path/to/leaf_photo.jpg
 ```
 
+## 💾 Redis Integration & Distributed Caching
+
+FasalSaathi uses **Redis** as a distributed caching and rate-limiting optimization layer. PostgreSQL remains the single source of truth for all persistent data. If Redis is down, the application automatically falls back to database queries and external APIs (Cache-Aside pattern).
+
+### Prerequisites & Configuration
+To run Redis, you must have a running Redis server (local native installation, or via Docker).
+
+Add the following environment variables to `backend/.env`:
+```env
+REDIS_URL=redis://localhost:6379/0
+REDIS_MAX_CONNECTIONS=20
+REDIS_TIMEOUT=5.0
+```
+
+### TTL Caching Policy
+
+| Data Type | Cache Key Shape | TTL | Invalidation Trigger |
+|---|---|---|---|
+| Weather Info | `weather:{lat}:{lon}:current` / `forecast:{days}` | 15 Minutes | Automatic expiry |
+| Market Prices | `market:{state}:{district}:{crop}` | 30 Minutes | Automatic expiry |
+| Schemes recommendations | `scheme_rec:{user_id}:{context_hash}` | 24 Hours | Context changes / Schemes mutations |
+| Schemes lists | `schemes:list:{cat}:{st}:{cr}:{skip}:{limit}` | 24 Hours | Scheme creation / update / deletion |
+| Farmer Context | `context:{user_id}` | 10 Minutes | Mutation to profile, farm, crop, or journal |
+| User Profile | `profile:{user_id}` | 15 Minutes | Profile update |
+| Dashboard Data | `dashboard:{user_id}` | 5 Minutes | Farm, crop, journal, or profile changes |
+| Crop recommendations | `crop_rec:{user_id}:{context_hash}` | 6 Hours | Context changes |
+| Chat Responses | `chat:{user_id}:{lang}:{mv}:{context_hash}:{msg_hash}` | 30 Minutes | Automatic expiry (single-turn query only) |
+
+### Rate Limiting Protection
+
+Redis tracks client IP addresses and user IDs to enforce the following limits (returns `HTTP 429 Too Many Requests`):
+* **Login attempts**: Max 5 per username in 15 mins, 20 per IP in 1 hour (falls back to DB-backed checks if Redis is offline).
+* **OTP Request**: Max 1 per phone in 1 min, 5 per hour, 20 per 24 hours, 10 per IP in 1 hour (falls back to DB-backed checks if Redis is offline).
+* **OTP Verification**: Max 5 attempts per IP in 15 minutes.
+* **AI Chat**: Max 10 messages per minute.
+* **Pest Image Upload (YOLO)**: Max 5 uploads per minute.
+
 ---
 
 ## ⚠️ Current Status & Known Issues

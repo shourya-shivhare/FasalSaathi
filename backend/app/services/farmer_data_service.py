@@ -152,6 +152,8 @@ class FarmerDataService:
             "soil_type": _enum_val(profile.soil_type),
             "irrigation_source": _enum_val(profile.irrigation_source),
             "crops_grown": profile.crops_grown or [],
+            "market_preferences": profile.market_preferences or {},
+            "scheme_participation": profile.scheme_participation or [],
             "profile_completed": profile.profile_completed,
         }
 
@@ -186,6 +188,13 @@ class FarmerDataService:
                 "total_area": f.total_area,
                 "soil_type": _enum_val(f.soil_type),
                 "irrigation_source": _enum_val(f.irrigation_source),
+                "latitude": f.latitude,
+                "longitude": f.longitude,
+                "ph": f.ph,
+                "nitrogen": f.nitrogen,
+                "phosphorus": f.phosphorus,
+                "potassium": f.potassium,
+                "organic_carbon": f.organic_carbon,
                 "created_at": str(f.created_at) if f.created_at else None,
                 "active_crop_count": active_count,
             })
@@ -346,6 +355,14 @@ class FarmerDataService:
         Build the complete farmer data context.
         Used by ContextBuilder to inject into AI requests.
         """
+        from backend.app.services.cache_service import CacheService
+        from backend.app.utils.cache_keys import make_context_key
+
+        context_key = make_context_key(self.user_id)
+        cached = CacheService.get_sync(context_key)
+        if cached is not None:
+            return cached
+
         profile = self.get_farmer_profile()
         farms = self.list_farms()
         active_crops = self.list_active_crops()
@@ -355,7 +372,7 @@ class FarmerDataService:
         farm_summary = self.get_farm_summary()
         season_context = self.get_season_context()
 
-        return {
+        full_context = {
             "profile": profile,
             "farms": farms,
             "active_crops": active_crops,
@@ -365,3 +382,7 @@ class FarmerDataService:
             "farm_summary": farm_summary,
             "season_context": season_context,
         }
+
+        # Cache the assembled context for 10 minutes (600 seconds)
+        CacheService.set_sync(context_key, full_context, ttl=600)
+        return full_context

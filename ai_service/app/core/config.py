@@ -5,6 +5,7 @@ from typing import List
 class Settings(BaseSettings):
     # LLM
     GOOGLE_API_KEY: str = ""
+    GOOGLE_API_KEYS: str = ""        # Comma-separated list of API keys for rotation
     LLM_MODEL: str = "gemini-1.5-flash"
     LLM_TEMPERATURE: float = 0.3
 
@@ -25,6 +26,10 @@ class Settings(BaseSettings):
     YOLO_WEIGHTS_PATH: str = "models/best.pt"
     YOLO_CONF_THRESHOLD: float = 0.35
     YOLO_OUTPUT_DIR: str = "outputs/detections"
+
+    # Data.gov.in API
+    DATA_GOV_API_KEY: str = ""
+    DATA_GOV_RESOURCE_ID: str = ""
 
     # Market Intelligence APIs
     AGMARKNET_API_KEY: str = ""

@@ -14,12 +14,21 @@ except ImportError:
 from backend.app.core.config import settings
 from backend.app.api.v1.router import api_router
 
-#database properites
-from backend.app.db.database import Base, engine
-from backend.app.models import user, crop, farm, crop_cycle, crop_journal, pest_detection_history
+#database properties
+from backend.app.db.database import Base, engine, upgrade_db_schema
+from backend.app.models import (
+    user, crop, farm, crop_cycle, crop_journal, pest_detection_history,
+    farmer_profile, session, security_event, rate_limit_event, scheme
+)
+
+from backend.app.core.redis import redis_manager
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Initialize Redis connection pools
+    redis_manager.init_redis()
+
     # Warmup YOLO model
     if load_model:
         PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -29,6 +38,8 @@ async def lifespan(app: FastAPI):
             load_model(weights_path)
             print("[*] YOLO model warmed up successfully.")
     yield
+    # Teardown Redis pools
+    await redis_manager.close_redis()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -40,6 +51,7 @@ app = FastAPI(
 
 #creating tables of all the defined models 
 Base.metadata.create_all(bind=engine)
+upgrade_db_schema(engine)
 
 # Mount static directory for annotated images
 # The outputs directory is at the root FasalSaathi/outputs

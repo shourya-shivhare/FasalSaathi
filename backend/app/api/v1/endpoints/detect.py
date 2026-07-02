@@ -34,7 +34,7 @@ except ImportError as exc:
 else:
     _IMPORT_ERROR = None
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -162,6 +162,7 @@ def _build_response(
     status_code=status.HTTP_200_OK,
 )
 async def detect_pests(
+    request: Request,
     file: UploadFile = File(..., description="Farm image to analyse (JPEG/PNG/WebP)"),
     crop_cycle_id: Optional[int] = Form(None, description="Optional crop cycle to link detection to"),
     db: Session = Depends(deps.get_db),
@@ -173,13 +174,17 @@ async def detect_pests(
     - **file**: Image file (JPEG, PNG, BMP, or WebP).
     - **crop_cycle_id**: Optional ID of the crop cycle to associate this detection with.
 
-    Returns a JSON payload containing:
-    - `pests`: List of detected pest class names.
-    - `confidence`: Matching confidence scores.
-    - `suggestions`: Deduplicated treatment recommendations.
-    - `results`: Full per-detection detail (pest, confidence, severity, suggestions).
-    - `bboxes`: Bounding box coordinates for each detection.
+    Returns a JSON payload containing detections.
     """
+    # Enforce Rate Limit (5 uploads per minute)
+    from backend.app.services.redis_rate_limiter import RedisRateLimiter
+    ip_address = request.client.host if request.client else "127.0.0.1"
+    rate_limiter_id = f"user:{current_user.id}" if current_user else f"ip:{ip_address}"
+    rate_limit_key = f"rate:detect:{rate_limiter_id}"
+    await RedisRateLimiter.check_rate_limit_async(
+        rate_limit_key, 5, 60, "Exceeded limit of 5 pest detection requests per minute."
+    )
+
     # Guard: validate crop ownership early to prevent IDOR and wasted inference work
     crop_name = None
     if current_user and crop_cycle_id is not None:

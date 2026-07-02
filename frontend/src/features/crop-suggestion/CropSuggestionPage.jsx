@@ -59,10 +59,11 @@ export const CropSuggestionPage = () => {
     Array.isArray(farmer?.crops_grown) ? farmer.crops_grown.join(', ') : (farmer?.crops_grown || '')
   );
 
-  const previousCrops = useChatStore((s) => s.analysisContext?.crops);
-
   // Persisted results store
   const { cropResults, setCropResults } = useResultsStore();
+
+  const previousCropsResponse = useChatStore((s) => s.analysisContext?.crops);
+  const previousCrops = previousCropsResponse?.crop_recommendations || previousCropsResponse;
 
   // Results — initialize from persisted store, fall back to analysisContext
   const [crops, setCrops] = useState(
@@ -73,6 +74,9 @@ export const CropSuggestionPage = () => {
   );
   const [pestNote, setPestNote] = useState(
     cropResults.hasSearched ? cropResults.pestNote : (previousCrops?.pest_considerations || '')
+  );
+  const [mlPredictedCrop, setMlPredictedCrop] = useState(
+    cropResults.hasSearched ? cropResults.mlPredictedCrop : (previousCrops?.ml_predicted_crop || null)
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -96,19 +100,28 @@ export const CropSuggestionPage = () => {
         past_crops: pastCrops ? pastCrops.split(',').map(c => c.trim()).filter(Boolean) : [],
       };
       const data = await api.getCropRecommendation(payload, accessToken);
-      setCrops(data.recommended_crops || []);
-      setSummary(data.reasoning_summary || '');
-      setPestNote(data.pest_considerations || '');
+      
+      const recommendations = data.crop_recommendations || data;
+      const recCrops = recommendations.recommended_crops || [];
+      const recSummary = recommendations.reasoning_summary || '';
+      const recPestNote = recommendations.pest_considerations || '';
+      const recMl = recommendations.ml_predicted_crop || null;
+
+      setCrops(recCrops);
+      setSummary(recSummary);
+      setPestNote(recPestNote);
+      setMlPredictedCrop(recMl);
       
       // Persist results to store (survives navigation)
       setCropResults({
-        crops: data.recommended_crops || [],
-        summary: data.reasoning_summary || '',
-        pestNote: data.pest_considerations || '',
+        crops: recCrops,
+        summary: recSummary,
+        pestNote: recPestNote,
+        mlPredictedCrop: recMl,
       });
       
-      // Share context with Chatbot
-      useChatStore.getState().setAnalysisContext({ crop_recommendations: data });
+      // Share context with Chatbot (always use data as returned for chatbot compatibility)
+      useChatStore.getState().setAnalysisContext(data.crop_recommendations ? data : { crop_recommendations: data });
     } catch (err) {
       setError(err.message || 'Failed to fetch crop recommendations');
     } finally {
@@ -318,75 +331,92 @@ export const CropSuggestionPage = () => {
       )}
 
       {/* ── Crop Result Cards ───────────────────────────────────────────── */}
-      {crops.map((crop, i) => (
-        <div key={i} style={cardStyle}
-          onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(74,222,128,0.3)'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}>
+      {crops.map((crop, i) => {
+        const isMlVerified = mlPredictedCrop && crop.crop_name.toLowerCase().includes(mlPredictedCrop.toLowerCase());
+        
+        return (
+          <div key={i} style={cardStyle}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(74,222,128,0.3)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}>
 
-          {/* Top row: name + confidence */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                <span style={{ fontSize: '1.4rem' }}>{cropEmoji(crop.crop_name)}</span>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#fff' }}>
-                  {crop.crop_name}
-                </h3>
-                <span style={{
-                  ...pillStyle,
-                  background: 'rgba(74,222,128,0.1)', color: '#4ADE80',
-                }}>
-                  {crop.season}
+            {/* Top row: name + confidence */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '1.4rem' }}>{cropEmoji(crop.crop_name)}</span>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#fff' }}>
+                    {crop.crop_name}
+                  </h3>
+                  <span style={{
+                    ...pillStyle,
+                    background: 'rgba(74,222,128,0.1)', color: '#4ADE80',
+                  }}>
+                    {crop.season}
+                  </span>
+                  {isMlVerified && (
+                    <span style={{
+                      ...pillStyle,
+                      background: 'rgba(59,130,246,0.15)', color: '#60A5FA',
+                      border: '1px solid rgba(59,130,246,0.3)',
+                      boxShadow: '0 0 10px rgba(59,130,246,0.2)',
+                    }}>
+                      🧪 Scientifically Verified by ML
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Confidence badge */}
+              <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                padding: '8px 14px', borderRadius: '12px',
+                background: `${scoreColor(crop.confidence)}15`,
+                border: `1px solid ${scoreColor(crop.confidence)}30`,
+                minWidth: '100px',
+              }}>
+                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: scoreColor(crop.confidence) }}>
+                  {Math.round(crop.confidence * 100)}%
+                </span>
+                <span style={{ fontSize: '0.7rem', color: scoreColor(crop.confidence), fontWeight: 600 }}>
+                  {scoreLabel(crop.confidence)}
                 </span>
               </div>
             </div>
 
-            {/* Confidence badge */}
-            <div style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-              padding: '8px 14px', borderRadius: '12px',
-              background: `${scoreColor(crop.confidence)}15`,
-              border: `1px solid ${scoreColor(crop.confidence)}30`,
-              minWidth: '100px',
+            {/* Reasoning */}
+            <p style={{
+              margin: '12px 0 0', padding: '12px 16px', borderRadius: '12px',
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)',
+              fontSize: '0.88rem', color: 'rgba(255,255,255,0.85)', lineHeight: 1.6,
             }}>
-              <span style={{ fontSize: '1.2rem', fontWeight: 800, color: scoreColor(crop.confidence) }}>
-                {Math.round(crop.confidence * 100)}%
+              <span style={{ display: 'block', color: 'rgba(74,222,128,0.9)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.05em' }}>
+                Agronomist Insight (Gemini AI)
               </span>
-              <span style={{ fontSize: '0.7rem', color: scoreColor(crop.confidence), fontWeight: 600 }}>
-                {scoreLabel(crop.confidence)}
-              </span>
+              {crop.reasoning}
+            </p>
+
+            {/* Metadata pills */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+              {crop.estimated_yield_per_acre && (
+                <span style={{
+                  ...pillStyle,
+                  background: 'rgba(96,165,250,0.1)', color: '#60a5fa',
+                }}>
+                  <Wheat size={12} /> Yield: {crop.estimated_yield_per_acre}
+                </span>
+              )}
+              {crop.water_requirement && (
+                <span style={{
+                  ...pillStyle,
+                  background: 'rgba(56,189,248,0.1)', color: '#38bdf8',
+                }}>
+                  <Droplets size={12} /> Water: {crop.water_requirement}
+                </span>
+              )}
             </div>
           </div>
-
-          {/* Reasoning */}
-          <p style={{
-            margin: '12px 0 0', padding: '10px 14px', borderRadius: '10px',
-            background: 'rgba(74,222,128,0.06)', fontSize: '0.88rem',
-            color: 'rgba(255,255,255,0.8)', lineHeight: 1.5,
-          }}>
-            {crop.reasoning}
-          </p>
-
-          {/* Metadata pills */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
-            {crop.estimated_yield_per_acre && (
-              <span style={{
-                ...pillStyle,
-                background: 'rgba(96,165,250,0.1)', color: '#60a5fa',
-              }}>
-                <Wheat size={12} /> Yield: {crop.estimated_yield_per_acre}
-              </span>
-            )}
-            {crop.water_requirement && (
-              <span style={{
-                ...pillStyle,
-                background: 'rgba(56,189,248,0.1)', color: '#38bdf8',
-              }}>
-                <Droplets size={12} /> Water: {crop.water_requirement}
-              </span>
-            )}
-          </div>
-        </div>
-      ))}
+        );
+      })}
 
       {/* ── Spin animation (shared with SchemesPage) ──────────────────── */}
       <style>{`

@@ -20,7 +20,30 @@ def get_current_user(current_user: User = Depends(deps.get_current_user)):
     UserResponse.populate_legacy_fields computes name/phone/is_onboarded
     from farmer_profile automatically.
     """
-    return current_user
+    from backend.app.services.cache_service import CacheService
+    from backend.app.utils.cache_keys import make_profile_key
+
+    cache_key = make_profile_key(current_user.id)
+    cached = CacheService.get_sync(cache_key)
+    if cached is not None:
+        return cached
+
+    # Parse and validate model
+    res_obj = UserResponse.model_validate(current_user)
+    res_dict = res_obj.model_dump()
+    
+    # Convert datetime objects to ISO strings for JSON serialization compatibility
+    res_dict["created_at"] = res_dict["created_at"].isoformat()
+    res_dict["updated_at"] = res_dict["updated_at"].isoformat()
+    if res_dict.get("farmer_profile"):
+        fp = res_dict["farmer_profile"]
+        if fp.get("profile_created_at"):
+            fp["profile_created_at"] = fp["profile_created_at"].isoformat()
+        if fp.get("profile_updated_at"):
+            fp["profile_updated_at"] = fp["profile_updated_at"].isoformat()
+
+    CacheService.set_sync(cache_key, res_dict, ttl=900)
+    return res_dict
 
 @router.put("/me", response_model=UserResponse)
 def update_user_me(
@@ -73,6 +96,15 @@ def update_user_me(
     db.refresh(profile)
     db.refresh(current_user)
     
+    # Invalidate profile and context caches
+    from backend.app.services.cache_service import CacheService
+    from backend.app.utils.cache_keys import make_profile_key, make_context_key, make_dashboard_key
+    CacheService.delete_sync(make_profile_key(current_user.id))
+    CacheService.delete_sync(make_context_key(current_user.id))
+    CacheService.delete_sync(make_dashboard_key(current_user.id))
+    CacheService.invalidate_pattern_sync(f"crop_rec:{current_user.id}:*")
+    CacheService.invalidate_pattern_sync(f"scheme_rec:{current_user.id}:*")
+
     return current_user
 
 @router.get("/me/sessions", response_model=List[SessionResponse])

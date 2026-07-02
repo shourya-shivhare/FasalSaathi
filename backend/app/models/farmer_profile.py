@@ -27,6 +27,10 @@ class FarmerProfile(Base):
     # Long-term crop data lives in Farm and CropCycle domain models.
     crops_grown = Column(JSON, nullable=True)
     
+    # Market preferences and government schemes
+    market_preferences = Column(JSON, nullable=True)
+    scheme_participation = Column(JSON, nullable=True)
+
     profile_completed = Column(Boolean, default=False, nullable=False)
     profile_version = Column(Integer, default=1, nullable=False)
     profile_updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

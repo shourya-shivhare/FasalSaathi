@@ -47,6 +47,14 @@ async def raw_prices(
     limit: int = Query(20, le=50),
 ):
     """Proxy to AI service raw mandi prices."""
+    from backend.app.services.cache_service import CacheService
+    from backend.app.utils.cache_keys import make_market_key
+
+    cache_key = make_market_key(state, district, commodity)
+    cached = await CacheService.get(cache_key)
+    if cached is not None:
+        return cached
+
     params = {"commodity": commodity, "limit": limit}
     if state:
         params["state"] = state
@@ -58,7 +66,10 @@ async def raw_prices(
         async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
             resp = await client.get(url, params=params)
             resp.raise_for_status()
-            return resp.json()
+            res_json = resp.json()
+            # Cache for 30 minutes (1800 seconds)
+            await CacheService.set(cache_key, res_json, ttl=1800)
+            return res_json
     except httpx.HTTPStatusError as exc:
         raise HTTPException(status_code=exc.response.status_code, detail=exc.response.text)
     except httpx.RequestError as exc:

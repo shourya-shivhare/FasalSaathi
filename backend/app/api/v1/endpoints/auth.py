@@ -270,7 +270,10 @@ def refresh_token_route(
     if db_session:
         # If session is revoked or hash doesn't match, or expired
         is_revoked = db_session.revoked_at is not None
-        is_expired = db_session.expires_at < datetime.now(timezone.utc)
+        expires_at = db_session.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        is_expired = expires_at < datetime.now(timezone.utc)
         hash_mismatch = db_session.refresh_token_hash != incoming_hash
         
         if is_revoked or is_expired or hash_mismatch:

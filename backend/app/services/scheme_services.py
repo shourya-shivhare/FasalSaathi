@@ -1,12 +1,16 @@
 # app/services/scheme_service.py
 
+import hashlib
+import json
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from typing import List
+from typing import List, Optional
 
 from backend.app.models.scheme import Scheme
 from backend.app.models.user import User
-from backend.app.schemas.scheme import SchemeRecommendation
+from backend.app.schemas.scheme import SchemeRecommendation, SchemeCreate, SchemeUpdate
+from backend.app.services.cache_service import CacheService
+from backend.app.utils.cache_keys import make_schemes_list_key, make_scheme_recommendation_key
 
 
 class SchemeService:
@@ -18,6 +22,15 @@ class SchemeService:
         from backend.app.services.context_builder import build_farmer_context
         context = build_farmer_context(user.id, self.db)
         
+        # Build context hash to support context-based caching
+        context_str = json.dumps(context or {}, sort_keys=True)
+        context_hash = hashlib.md5(context_str.encode("utf-8")).hexdigest()
+        
+        cache_key = make_scheme_recommendation_key(user.id, context_hash)
+        cached = CacheService.get_sync(cache_key)
+        if cached is not None:
+            return [SchemeRecommendation(**item) for item in cached]
+
         q = self.db.query(Scheme)
 
         # State filter
@@ -77,10 +90,21 @@ class SchemeService:
                 )
             )
 
-        return sorted(results, key=lambda x: x.match_score, reverse=True)
+        sorted_results = sorted(results, key=lambda x: x.match_score, reverse=True)
+        
+        # Cache results for 24 hours (86400 seconds)
+        serialized_results = [r.model_dump() for r in sorted_results]
+        CacheService.set_sync(cache_key, serialized_results, ttl=86400)
+        
+        return sorted_results
 
     # 🔹 Simple list API
     def list(self, category: str | None, state: str | None, crop: str | None = None, skip: int = 0, limit: int = 50) -> List[Scheme]:
+        cache_key = make_schemes_list_key(category, state, crop, skip, limit)
+        cached = CacheService.get_sync(cache_key)
+        if cached is not None:
+            return [Scheme(**item) for item in cached]
+
         q = self.db.query(Scheme)
 
         if category:
@@ -102,7 +126,69 @@ class SchemeService:
                 )
             )
 
-        return q.offset(skip).limit(limit).all()
+        schemes = q.offset(skip).limit(limit).all()
+
+        # Cache results for 24 hours
+        serialized = []
+        for s in schemes:
+            serialized.append({
+                "id": s.id,
+                "name": s.name,
+                "ministry": s.ministry,
+                "category": s.category,
+                "description": s.description,
+                "benefits": s.benefits,
+                "eligibility": s.eligibility,
+                "states": s.states,
+                "crops": s.crops,
+                "min_age": s.min_age,
+                "max_age": s.max_age,
+                "apply_url": s.apply_url,
+                "source": s.source,
+                "last_synced": str(s.last_synced) if s.last_synced else None
+            })
+        CacheService.set_sync(cache_key, serialized, ttl=86400)
+        
+        return schemes
+
+    # 🔹 Mutations with Invalidation
+    def create(self, payload: SchemeCreate) -> Scheme:
+        scheme = Scheme(**payload.model_dump())
+        self.db.add(scheme)
+        self.db.commit()
+        self.db.refresh(scheme)
+        # Invalidate all scheme list and recommendation caches
+        CacheService.invalidate_pattern_sync("schemes:*")
+        CacheService.invalidate_pattern_sync("scheme_rec:*")
+        return scheme
+
+    def update(self, scheme_id: int, payload: SchemeUpdate) -> Optional[Scheme]:
+        scheme = self.db.query(Scheme).filter(Scheme.id == scheme_id).first()
+        if not scheme:
+            return None
+        
+        update_data = payload.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(scheme, field, value)
+            
+        self.db.commit()
+        self.db.refresh(scheme)
+        # Invalidate all scheme list and recommendation caches
+        CacheService.invalidate_pattern_sync("schemes:*")
+        CacheService.invalidate_pattern_sync("scheme_rec:*")
+        return scheme
+
+    def delete(self, scheme_id: int) -> bool:
+        scheme = self.db.query(Scheme).filter(Scheme.id == scheme_id).first()
+        if not scheme:
+            return False
+        
+        self.db.delete(scheme)
+        self.db.commit()
+        # Invalidate all scheme list and recommendation caches
+        CacheService.invalidate_pattern_sync("schemes:*")
+        CacheService.invalidate_pattern_sync("scheme_rec:*")
+        return True
 
     # 🔹 Scoring logic
     def _score(self, scheme: Scheme, user: User, context: dict):
@@ -138,4 +224,4 @@ class SchemeService:
                 score += 0.1
                 matched.append("age:max")
 
-        return min(score, 1.0), matched
+        return min(score, 1.0), matched

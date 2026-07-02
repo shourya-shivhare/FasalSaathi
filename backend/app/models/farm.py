@@ -18,5 +18,14 @@ class Farm(Base):
     irrigation_source = Column(Enum(IrrigationSource), default=IrrigationSource.RAINFED, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
+    # GPS and Soil Health parameters
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    ph = Column(Float, nullable=True)
+    nitrogen = Column(Float, nullable=True)
+    phosphorus = Column(Float, nullable=True)
+    potassium = Column(Float, nullable=True)
+    organic_carbon = Column(Float, nullable=True)
+
     user = relationship("User", back_populates="farms")
     crop_cycles = relationship("CropCycle", back_populates="farm", cascade="all, delete-orphan")

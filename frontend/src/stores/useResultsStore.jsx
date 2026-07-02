@@ -10,17 +10,18 @@ export const useResultsStore = create(
       crops: [],
       summary: '',
       pestNote: '',
+      mlPredictedCrop: null,
       hasSearched: false,
     },
 
-    setCropResults: ({ crops, summary, pestNote }) =>
+    setCropResults: ({ crops, summary, pestNote, mlPredictedCrop }) =>
       set({
-        cropResults: { crops, summary, pestNote, hasSearched: true },
+        cropResults: { crops, summary, pestNote, mlPredictedCrop, hasSearched: true },
       }),
 
     clearCropResults: () =>
       set({
-        cropResults: { crops: [], summary: '', pestNote: '', hasSearched: false },
+        cropResults: { crops: [], summary: '', pestNote: '', mlPredictedCrop: null, hasSearched: false },
       }),
 
     // ── Scheme Results ───────────────────────────────────────────────────

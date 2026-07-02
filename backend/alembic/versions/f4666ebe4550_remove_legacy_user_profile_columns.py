@@ -20,6 +20,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
+    # Copy phone to phone_number before dropping phone, ensuring no duplicates violate unique constraint
+    op.execute("""
+        UPDATE users 
+        SET phone_number = phone 
+        WHERE phone_number IS NULL 
+          AND phone IS NOT NULL 
+          AND id = (SELECT MIN(u.id) FROM users u WHERE u.phone = users.phone)
+    """)
     op.drop_column('users', 'phone')
     op.drop_column('users', 'state')
     op.drop_column('users', 'district')

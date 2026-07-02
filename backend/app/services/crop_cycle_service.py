@@ -24,6 +24,15 @@ class CropCycleService:
         self.db.add(cycle)
         self.db.commit()
         self.db.refresh(cycle)
+        
+        # Invalidate caches
+        from backend.app.services.cache_service import CacheService
+        from backend.app.utils.cache_keys import make_context_key, make_dashboard_key
+        CacheService.delete_sync(make_context_key(user_id))
+        CacheService.delete_sync(make_dashboard_key(user_id))
+        CacheService.invalidate_pattern_sync(f"crop_rec:{user_id}:*")
+        CacheService.invalidate_pattern_sync(f"scheme_rec:{user_id}:*")
+
         return cycle
 
     def list_cycles(
@@ -72,6 +81,15 @@ class CropCycleService:
 
         self.db.commit()
         self.db.refresh(cycle)
+        
+        # Invalidate caches
+        from backend.app.services.cache_service import CacheService
+        from backend.app.utils.cache_keys import make_context_key, make_dashboard_key
+        CacheService.delete_sync(make_context_key(user_id))
+        CacheService.delete_sync(make_dashboard_key(user_id))
+        CacheService.invalidate_pattern_sync(f"crop_rec:{user_id}:*")
+        CacheService.invalidate_pattern_sync(f"scheme_rec:{user_id}:*")
+
         return cycle
 
     def update_stage(self, cycle_id: int, user_id: int, new_stage: CropStage) -> Optional[CropCycle]:
@@ -82,6 +100,15 @@ class CropCycleService:
         cycle.current_stage = new_stage
         self.db.commit()
         self.db.refresh(cycle)
+        
+        # Invalidate caches
+        from backend.app.services.cache_service import CacheService
+        from backend.app.utils.cache_keys import make_context_key, make_dashboard_key
+        CacheService.delete_sync(make_context_key(user_id))
+        CacheService.delete_sync(make_dashboard_key(user_id))
+        CacheService.invalidate_pattern_sync(f"crop_rec:{user_id}:*")
+        CacheService.invalidate_pattern_sync(f"scheme_rec:{user_id}:*")
+
         return cycle
 
     def complete_cycle(self, cycle_id: int, user_id: int, final_status: CropCycleStatus = CropCycleStatus.COMPLETED) -> Optional[CropCycle]:
@@ -92,4 +119,13 @@ class CropCycleService:
         cycle.status = final_status
         self.db.commit()
         self.db.refresh(cycle)
+        
+        # Invalidate caches
+        from backend.app.services.cache_service import CacheService
+        from backend.app.utils.cache_keys import make_context_key, make_dashboard_key
+        CacheService.delete_sync(make_context_key(user_id))
+        CacheService.delete_sync(make_dashboard_key(user_id))
+        CacheService.invalidate_pattern_sync(f"crop_rec:{user_id}:*")
+        CacheService.invalidate_pattern_sync(f"scheme_rec:{user_id}:*")
+
         return cycle

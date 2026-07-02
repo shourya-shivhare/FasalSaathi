@@ -16,6 +16,15 @@ class FarmService:
         self.db.add(farm)
         self.db.commit()
         self.db.refresh(farm)
+        
+        # Invalidate caches
+        from backend.app.services.cache_service import CacheService
+        from backend.app.utils.cache_keys import make_context_key, make_dashboard_key
+        CacheService.delete_sync(make_context_key(user_id))
+        CacheService.delete_sync(make_dashboard_key(user_id))
+        CacheService.invalidate_pattern_sync(f"crop_rec:{user_id}:*")
+        CacheService.invalidate_pattern_sync(f"scheme_rec:{user_id}:*")
+
         return farm
 
     def list_farms(self, user_id: int) -> List[Farm]:
@@ -38,6 +47,16 @@ class FarmService:
 
         self.db.commit()
         self.db.refresh(farm)
+        
+        # Invalidate caches
+        from backend.app.services.cache_service import CacheService
+        from backend.app.utils.cache_keys import make_context_key, make_dashboard_key, make_farm_key
+        CacheService.delete_sync(make_context_key(user_id))
+        CacheService.delete_sync(make_dashboard_key(user_id))
+        CacheService.delete_sync(make_farm_key(farm_id))
+        CacheService.invalidate_pattern_sync(f"crop_rec:{user_id}:*")
+        CacheService.invalidate_pattern_sync(f"scheme_rec:{user_id}:*")
+
         return farm
 
     def delete_farm(self, farm_id: int, user_id: int) -> bool:
@@ -47,6 +66,16 @@ class FarmService:
 
         self.db.delete(farm)
         self.db.commit()
+        
+        # Invalidate caches
+        from backend.app.services.cache_service import CacheService
+        from backend.app.utils.cache_keys import make_context_key, make_dashboard_key, make_farm_key
+        CacheService.delete_sync(make_context_key(user_id))
+        CacheService.delete_sync(make_dashboard_key(user_id))
+        CacheService.delete_sync(make_farm_key(farm_id))
+        CacheService.invalidate_pattern_sync(f"crop_rec:{user_id}:*")
+        CacheService.invalidate_pattern_sync(f"scheme_rec:{user_id}:*")
+
         return True
 
     def get_farm_with_active_crop_count(self, farm: Farm) -> dict:

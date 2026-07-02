@@ -85,6 +85,10 @@ async def run_crop_recommendation_agent(
             extra_lines.append(
                 f"Pest detection results: {request.context_from_agents['pest_detection']}"
             )
+        if "ml_predicted_crop" in request.context_from_agents:
+            extra_lines.append(
+                f"Machine Learning model prediction (Scientific Baseline): {request.context_from_agents['ml_predicted_crop']}"
+            )
     extra_context = "\n".join(extra_lines) if extra_lines else "No additional agent context."
 
     prompt_text = CROP_RECOMMENDATION_PROMPT.format(

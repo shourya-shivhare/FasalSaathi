@@ -30,14 +30,14 @@ def test_signup_otp_send_validation(client):
     # Test valid E.164 phone number
     response = client.post(
         "/api/v1/auth/signup/send-otp",
-        json={"username": "testuser", "phone_number": "+919876543210", "password": "mypassword", "channel": "SMS"}
+        json={"username": "testuser", "phone_number": "+919876543219", "password": "mypassword", "channel": "SMS"}
     )
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["status"] == "pending"
 
 def test_signup_verify_flow_new_user(client, db: Session):
-    username = "newfarmer"
-    phone = "+919876543210"
+    username = "newfarmer_test"
+    phone = "+919876543219"
     pwd = "securepassword"
     
     # 1. Verify OTP with correct code

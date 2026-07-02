@@ -7,6 +7,9 @@ from __future__ import annotations
 import logging
 import time
 from datetime import datetime, timezone
+import os
+import joblib
+import numpy as np
 
 from ai_service.app.agents.crop_recommendation_agent import run_crop_recommendation_agent
 from ai_service.app.schemas.agent_schemas import CropRecommendationRequest
@@ -14,6 +17,26 @@ from ai_service.app.graph.state import FasalSaathiState
 from langchain_core.runnables import RunnableConfig
 
 logger = logging.getLogger(__name__)
+
+# Load the model into a global variable
+MODEL_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..", "..", "models", "crop_recommendation_model.pkl"
+    )
+)
+
+try:
+    if os.path.exists(MODEL_PATH):
+        ml_model = joblib.load(MODEL_PATH)
+        logger.info("🤖 Loaded Random Forest crop recommendation model from %s", MODEL_PATH)
+    else:
+        ml_model = None
+        logger.warning("🤖 Crop recommendation model not found at %s", MODEL_PATH)
+except Exception as e:
+    ml_model = None
+    logger.error("🤖 Failed to load Random Forest model: %s", e)
+
 
 
 async def crop_recommendation_node(state: FasalSaathiState, config: RunnableConfig) -> dict:
@@ -35,6 +58,61 @@ async def crop_recommendation_node(state: FasalSaathiState, config: RunnableConf
             pest_context = f"Detected pests: {', '.join(pest_names)}"
             context_from_agents["pest_detection"] = pest_context
 
+    # Try running the ML prediction model
+    try:
+        if ml_model is None:
+            raise ValueError("ML Model is not loaded.")
+        
+        # Extract features from state or farmer_profile fallback
+        N = state.get("N")
+        if N is None:
+            N = profile.get("nitrogen") if profile.get("nitrogen") is not None else profile.get("N")
+            
+        P = state.get("P")
+        if P is None:
+            P = profile.get("phosphorus") if profile.get("phosphorus") is not None else profile.get("P")
+            
+        K = state.get("K")
+        if K is None:
+            K = profile.get("potassium") if profile.get("potassium") is not None else profile.get("K")
+            
+        ph = state.get("ph")
+        if ph is None:
+            ph = profile.get("ph")
+            
+        temperature = state.get("temperature")
+        if temperature is None:
+            temperature = profile.get("temperature")
+            
+        humidity = state.get("humidity")
+        if humidity is None:
+            humidity = profile.get("humidity")
+            
+        rainfall = state.get("rainfall")
+        if rainfall is None:
+            rainfall = profile.get("rainfall")
+            
+        # Validate that all required features are present
+        if any(v is None for v in [N, P, K, temperature, humidity, ph, rainfall]):
+            missing = [k for k, v in {
+                'N': N, 'P': P, 'K': K, 'temperature': temperature, 
+                'humidity': humidity, 'ph': ph, 'rainfall': rainfall
+            }.items() if v is None]
+            raise ValueError(f"Missing required ML features: {missing}")
+            
+        # Format features into a 2D NumPy array
+        features = np.array([[float(N), float(P), float(K), float(temperature), float(humidity), float(ph), float(rainfall)]])
+        
+        # Run model prediction
+        predicted_crop = ml_model.predict(features)[0]
+        logger.info("🤖 ML model predicted crop: %s", predicted_crop)
+        
+        # Append predicted crop to the context dictionary passed to the LLM agent
+        context_from_agents["ml_predicted_crop"] = str(predicted_crop)
+        
+    except Exception as e:
+        logger.warning("🤖 ML prediction failed/skipped (falling back to pure LLM): %s", e)
+
     try:
         request = CropRecommendationRequest(
             state=profile.get("state", ""),
@@ -50,6 +128,10 @@ async def crop_recommendation_node(state: FasalSaathiState, config: RunnableConf
 
         response = await run_crop_recommendation_agent(request)
         result = response.model_dump()
+
+        # Inject the ML baseline predicted crop if available
+        if "ml_predicted_crop" in context_from_agents:
+            result["ml_predicted_crop"] = context_from_agents["ml_predicted_crop"]
 
         # Compute confidence from average crop confidence scores
         crops = result.get("recommended_crops", [])
